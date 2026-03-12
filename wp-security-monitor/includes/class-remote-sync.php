@@ -12,7 +12,7 @@ class WPSM_Remote_Sync {
     }
 
     public function init() {
-        add_action( 'wpsm_scheduled_sync', array( $this, 'send_heartbeat' ) );
+        // La ejecución se maneja desde WPSM_Cron para centralizar tareas.
     }
 
     public function send_heartbeat() {

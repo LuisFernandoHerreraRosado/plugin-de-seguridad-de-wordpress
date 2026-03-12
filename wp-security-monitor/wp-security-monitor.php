@@ -77,9 +77,10 @@ function run_wpsm() {
 
     // Captura de errores críticos
     set_error_handler( function( $errno, $errstr, $errfile, $errline ) use ( $logger ) {
-        if ( ! ( error_reporting() & $errno ) ) return;
+        if ( ! ( error_reporting() & $errno ) ) return false;
         $severity = ( $errno === E_USER_ERROR || $errno === E_RECOVERABLE_ERROR ) ? 'critical' : 'medium';
         $logger->log( 'php_error', sprintf( 'PHP Error: %s in %s on line %d', $errstr, $errfile, $errline ), $severity );
+        return false; // Permite que el error siga su curso normal
     } );
 }
 add_action( 'plugins_loaded', 'run_wpsm' );
