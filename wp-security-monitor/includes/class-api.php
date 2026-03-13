@@ -38,6 +38,19 @@ class WPSM_API {
             'callback' => array( $this, 'get_logs' ),
             'permission_callback' => array( $this, 'check_permission' )
         ) );
+
+        // Nuevos endpoints para sesiones
+        register_rest_route( $this->namespace, '/sessions', array(
+            'methods'  => 'GET',
+            'callback' => array( $this, 'get_active_sessions' ),
+            'permission_callback' => array( $this, 'check_permission' )
+        ) );
+
+        register_rest_route( $this->namespace, '/sessions/terminate', array(
+            'methods'  => 'POST',
+            'callback' => array( $this, 'terminate_session' ),
+            'permission_callback' => array( $this, 'check_permission' )
+        ) );
     }
 
     public function check_permission( $request ) {
@@ -66,5 +79,36 @@ class WPSM_API {
 
     public function get_logs( $request ) {
         return new WP_REST_Response( $this->logger->get_logs( 20, 0 ), 200 );
+    }
+
+    /**
+     * Endpoint para obtener sesiones activas (Dashboard Externo)
+     */
+    public function get_active_sessions( $request ) {
+        $user_id = $request->get_param( 'user_id' );
+        if ( ! $user_id ) return new WP_Error( 'missing_user_id', 'User ID is required', array( 'status' => 400 ) );
+
+        $manager = WP_Session_Tokens::get_instance( $user_id );
+        return new WP_REST_Response( $manager->get_all(), 200 );
+    }
+
+    /**
+     * Endpoint para terminar sesiones remotamente
+     */
+    public function terminate_session( $request ) {
+        $user_id = $request->get_param( 'user_id' );
+        $verifier = $request->get_param( 'verifier' );
+
+        if ( ! $user_id ) return new WP_Error( 'missing_user_id', 'User ID is required', array( 'status' => 400 ) );
+
+        $manager = WP_Session_Tokens::get_instance( $user_id );
+
+        if ( $verifier ) {
+            $manager->destroy( $verifier );
+        } else {
+            $manager->destroy_all();
+        }
+
+        return new WP_REST_Response( array( 'success' => true ), 200 );
     }
 }

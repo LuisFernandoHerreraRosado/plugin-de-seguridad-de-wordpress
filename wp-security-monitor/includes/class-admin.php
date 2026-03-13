@@ -19,6 +19,7 @@ class WPSM_Admin {
         add_action( 'admin_menu', array( $this, 'add_menu_pages' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
         add_action( 'admin_post_wpsm_save_settings', array( $this, 'save_settings' ) );
+        add_action( 'admin_post_wpsm_save_auth_settings', array( $this, 'save_auth_settings' ) );
         add_action( 'admin_post_wpsm_manual_scan', array( $this, 'run_manual_scan' ) );
         add_action( 'admin_post_wpsm_purge_logs', array( $this, 'purge_logs' ) );
         add_action( 'admin_post_wpsm_generate_api_key', array( $this, 'generate_api_key' ) );
@@ -41,6 +42,15 @@ class WPSM_Admin {
             'Dashboard',
             'manage_options',
             'wp-security-monitor'
+        );
+
+        add_submenu_page(
+            'wp-security-monitor',
+            __( 'Usuarios y Acceso', 'wp-security-monitor' ),
+            __( 'Usuarios', 'wp-security-monitor' ),
+            'manage_options',
+            'wpsm-auth',
+            array( $this, 'render_auth_page' )
         );
 
         add_submenu_page(
@@ -91,6 +101,10 @@ class WPSM_Admin {
         include WPSM_PATH . 'admin/settings-page.php';
     }
 
+    public function render_auth_page() {
+        include WPSM_PATH . 'admin/auth-settings-page.php';
+    }
+
     public function render_api_page() {
         include WPSM_PATH . 'admin/api-page.php';
     }
@@ -112,6 +126,38 @@ class WPSM_Admin {
         }
 
         wp_redirect( admin_url( 'admin.php?page=wpsm-settings&settings-updated=true' ) );
+        exit;
+    }
+
+    public function save_auth_settings() {
+        check_admin_referer( 'wpsm_auth_settings_action' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_die( 'No autorizado' );
+
+        $keys = array(
+            'login_slug',
+            'brute_force_enable',
+            'max_retries',
+            'lockout_duration',
+            'geoip_enable',
+            'geoip_mode',
+            'two_factor_enable',
+            'captcha_enable',
+            'pwd_min_length',
+            'pwd_expiry_days',
+            'pwd_complexity'
+        );
+
+        foreach ( $keys as $key ) {
+            if ( isset( $_POST[$key] ) ) {
+                $this->settings->update_setting( $key, sanitize_text_field( $_POST[$key] ) );
+            } else {
+                if ( in_array( $key, array( 'brute_force_enable', 'geoip_enable', 'two_factor_enable', 'captcha_enable' ) ) ) {
+                    $this->settings->update_setting( $key, 'no' );
+                }
+            }
+        }
+
+        wp_redirect( admin_url( 'admin.php?page=wpsm-auth&settings-updated=true' ) );
         exit;
     }
 

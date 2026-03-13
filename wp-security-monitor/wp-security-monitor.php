@@ -10,7 +10,7 @@
  * Domain Path:       /languages
  */
 
-if ( ! defined( 'WPINC' ) ) {
+if ( ! defined( 'ABSPATH' ) ) {
 	die;
 }
 
@@ -53,6 +53,21 @@ require_once WPSM_PATH . 'includes/class-api.php';
 require_once WPSM_PATH . 'includes/class-remote-sync.php';
 require_once WPSM_PATH . 'includes/class-admin.php';
 
+// Auth Module Classes
+require_once WPSM_PATH . 'includes/auth/class-custom-login.php';
+require_once WPSM_PATH . 'includes/auth/class-brute-force.php';
+require_once WPSM_PATH . 'includes/auth/class-geoip.php';
+require_once WPSM_PATH . 'includes/auth/class-password-policy.php';
+require_once WPSM_PATH . 'includes/auth/class-user-protection.php';
+require_once WPSM_PATH . 'includes/auth/class-session-manager.php';
+require_once WPSM_PATH . 'includes/auth/class-2fa-manager.php';
+require_once WPSM_PATH . 'includes/auth/class-2fa-totp.php';
+require_once WPSM_PATH . 'includes/auth/class-2fa-email.php';
+require_once WPSM_PATH . 'includes/auth/class-2fa-magic-link.php';
+require_once WPSM_PATH . 'includes/auth/class-2fa-backup-codes.php';
+require_once WPSM_PATH . 'includes/auth/class-captcha-base.php';
+require_once WPSM_PATH . 'includes/auth/class-captcha-math.php';
+
 /**
  * Inicialización
  */
@@ -68,12 +83,38 @@ function run_wpsm() {
     $remote_sync  = new WPSM_Remote_Sync( $logger );
     $admin        = new WPSM_Admin( $scanner, $logger, $settings );
 
+    // Iniciar módulos de autenticación y seguridad
+    $custom_login = new WPSM_Custom_Login( $settings );
+    $brute_force  = new WPSM_Brute_Force( $logger, $settings );
+    $geoip        = new WPSM_GeoIP( $logger, $settings );
+    $pwd_policy   = new WPSM_Password_Policy( $settings, $logger );
+    $user_prot    = new WPSM_User_Protection( $logger, $settings );
+    $session_mgr  = new WPSM_Session_Manager( $logger );
+    $two_fa_mgr   = new WPSM_2FA_Manager( $settings );
+    $captcha      = new WPSM_Captcha_Math( $settings );
+
+    // Registrar proveedores 2FA
+    $two_fa_mgr->register_provider( 'totp', new WPSM_2FA_TOTP() );
+    $two_fa_mgr->register_provider( 'email', new WPSM_2FA_Email() );
+    $two_fa_mgr->register_provider( 'magic_link', new WPSM_2FA_Magic_Link() );
+    $two_fa_mgr->register_provider( 'backup_codes', new WPSM_2FA_Backup_Codes() );
+
     // Iniciar módulos
     $login_mon->init();
     $cron->init();
     $api->init();
     $remote_sync->init();
     $admin->init();
+
+    // Iniciar nuevos módulos
+    $custom_login->init();
+    $brute_force->init();
+    $geoip->init();
+    $pwd_policy->init();
+    $user_prot->init();
+    $session_mgr->init();
+    $two_fa_mgr->init();
+    $captcha->register_hooks();
 
     // Captura de errores críticos
     set_error_handler( function( $errno, $errstr, $errfile, $errline ) use ( $logger ) {
@@ -82,5 +123,8 @@ function run_wpsm() {
         $logger->log( 'php_error', sprintf( 'PHP Error: %s in %s on line %d', $errstr, $errfile, $errline ), $severity );
         return false; // Permite que el error siga su curso normal
     } );
+
+    // Registrar inicio del plugin
+    $logger->log( 'plugin_started', __( 'Módulo de Seguridad y Usuarios iniciado correctamente.', 'wp-security-monitor' ), 'low' );
 }
 add_action( 'plugins_loaded', 'run_wpsm' );
