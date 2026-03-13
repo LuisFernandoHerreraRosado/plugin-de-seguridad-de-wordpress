@@ -21,6 +21,8 @@ class WPSM_Admin {
         add_action( 'admin_post_wpsm_save_settings', array( $this, 'save_settings' ) );
         add_action( 'admin_post_wpsm_save_auth_settings', array( $this, 'save_auth_settings' ) );
         add_action( 'admin_post_wpsm_save_ext_settings', array( $this, 'save_ext_settings' ) );
+        add_action( 'admin_post_wpsm_save_core_settings', array( $this, 'save_core_settings' ) );
+        add_action( 'admin_post_wpsm_change_db_prefix', array( $this, 'change_db_prefix' ) );
         add_action( 'admin_post_wpsm_manual_scan', array( $this, 'run_manual_scan' ) );
         add_action( 'admin_post_wpsm_purge_logs', array( $this, 'purge_logs' ) );
         add_action( 'admin_post_wpsm_generate_api_key', array( $this, 'generate_api_key' ) );
@@ -43,6 +45,15 @@ class WPSM_Admin {
             'Dashboard',
             'manage_options',
             'wp-security-monitor'
+        );
+
+        add_submenu_page(
+            'wp-security-monitor',
+            __( 'WordPress Core', 'wp-security-monitor' ),
+            __( 'WordPress core', 'wp-security-monitor' ),
+            'manage_options',
+            'wpsm-core',
+            array( $this, 'render_core_page' )
         );
 
         add_submenu_page(
@@ -119,6 +130,10 @@ class WPSM_Admin {
         include WPSM_PATH . 'admin/extensions-settings-page.php';
     }
 
+    public function render_core_page() {
+        include WPSM_PATH . 'admin/core-settings-page.php';
+    }
+
     public function render_api_page() {
         include WPSM_PATH . 'admin/api-page.php';
     }
@@ -154,6 +169,7 @@ class WPSM_Admin {
             'lockout_duration',
             'geoip_enable',
             'geoip_mode',
+            'allowed_countries',
             'two_factor_enable',
             'captcha_enable',
             'pwd_min_length',
@@ -190,6 +206,40 @@ class WPSM_Admin {
         }
 
         wp_redirect( admin_url( 'admin.php?page=wpsm-extensions&settings-updated=true' ) );
+        exit;
+    }
+
+    public function save_core_settings() {
+        check_admin_referer( 'wpsm_core_settings_action' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_die( 'No autorizado' );
+
+        $keys = array( 'auto_update_minor', 'auto_update_major', 'disable_file_edit', 'hide_db_errors', 'block_unfiltered_uploads', 'disable_debug' );
+
+        foreach ( $keys as $key ) {
+            if ( isset( $_POST[$key] ) ) {
+                $this->settings->update_setting( $key, sanitize_text_field( $_POST[$key] ) );
+            } else {
+                $this->settings->update_setting( $key, 'no' );
+            }
+        }
+
+        wp_redirect( admin_url( 'admin.php?page=wpsm-core&settings-updated=true' ) );
+        exit;
+    }
+
+    public function change_db_prefix() {
+        check_admin_referer( 'wpsm_change_prefix_action' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_die( 'No autorizado' );
+
+        $new_prefix = sanitize_text_field( $_POST['new_prefix'] );
+        $manager = new WPSM_DB_Prefix_Manager( $this->logger );
+        $result = $manager->change_prefix( $new_prefix );
+
+        if ( is_wp_error( $result ) ) {
+            wp_die( $result->get_error_message() );
+        }
+
+        wp_redirect( admin_url( 'admin.php?page=wpsm-core&prefix-changed=true' ) );
         exit;
     }
 

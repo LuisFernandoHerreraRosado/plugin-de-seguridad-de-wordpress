@@ -35,7 +35,13 @@ class WPSM_Settings {
             'block_zip_upload'   => $this->get_setting( 'block_zip_upload', 'no' ),
             'restrict_ext_ops'   => $this->get_setting( 'restrict_ext_ops', 'no' ),
             'force_ftp'          => $this->get_setting( 'force_ftp', 'no' ),
-            'vulnerability_scan' => $this->get_setting( 'vulnerability_scan', 'yes' )
+            'vulnerability_scan' => $this->get_setting( 'vulnerability_scan', 'yes' ),
+            'auto_update_minor'  => $this->get_setting( 'auto_update_minor', 'yes' ),
+            'auto_update_major'  => $this->get_setting( 'auto_update_major', 'no' ),
+            'disable_file_edit'  => $this->get_setting( 'disable_file_edit', 'yes' ),
+            'hide_db_errors'     => $this->get_setting( 'hide_db_errors', 'yes' ),
+            'block_unfiltered_uploads' => $this->get_setting( 'block_unfiltered_uploads', 'yes' ),
+            'disable_debug'      => $this->get_setting( 'disable_debug', 'yes' )
         );
     }
 }

@@ -51,7 +51,6 @@ class WPSM_API {
             'permission_callback' => array( $this, 'check_permission' )
         ) );
 
-        // Nuevos endpoints para extensiones
         register_rest_route( $this->namespace, '/extensions', array(
             'methods'  => 'GET',
             'callback' => array( $this, 'get_extensions' ),
@@ -67,6 +66,19 @@ class WPSM_API {
         register_rest_route( $this->namespace, '/extensions/reinstall', array(
             'methods'  => 'POST',
             'callback' => array( $this, 'reinstall_extension' ),
+            'permission_callback' => array( $this, 'check_permission' )
+        ) );
+
+        // Nuevos endpoints para WordPress Core
+        register_rest_route( $this->namespace, '/core/status', array(
+            'methods'  => 'GET',
+            'callback' => array( $this, 'get_core_status' ),
+            'permission_callback' => array( $this, 'check_permission' )
+        ) );
+
+        register_rest_route( $this->namespace, '/database/prefix', array(
+            'methods'  => 'GET',
+            'callback' => array( $this, 'get_db_status' ),
             'permission_callback' => array( $this, 'check_permission' )
         ) );
     }
@@ -124,24 +136,15 @@ class WPSM_API {
         return new WP_REST_Response( array( 'success' => true ), 200 );
     }
 
-    /**
-     * Obtiene auditoría completa de extensiones
-     */
     public function get_extensions( $request ) {
         $auditor = new WPSM_Extension_Auditor( $this->logger );
         return new WP_REST_Response( $auditor->audit_all_extensions(), 200 );
     }
 
-    /**
-     * Obtiene hallazgos de vulnerabilidades
-     */
     public function get_vulnerabilities( $request ) {
         return new WP_REST_Response( get_option( 'wpsm_vulnerability_findings', array() ), 200 );
     }
 
-    /**
-     * Reinstala una extensión remotamente
-     */
     public function reinstall_extension( $request ) {
         $slug = $request->get_param( 'slug' );
         if ( ! $slug ) return new WP_Error( 'missing_slug', 'Slug is required', array( 'status' => 400 ) );
@@ -154,5 +157,25 @@ class WPSM_API {
         }
 
         return new WP_REST_Response( array( 'success' => true ), 200 );
+    }
+
+    /**
+     * Obtiene el estado del core (versión, actualizaciones disponibles)
+     */
+    public function get_core_status( $request ) {
+        $updates = get_site_transient( 'update_core' );
+        return new WP_REST_Response( array(
+            'version' => get_bloginfo( 'version' ),
+            'updates' => $updates,
+            'history' => get_option( 'wpsm_update_history', array() )
+        ), 200 );
+    }
+
+    /**
+     * Obtiene el estado de la base de datos (prefijo)
+     */
+    public function get_db_status( $request ) {
+        $manager = new WPSM_DB_Prefix_Manager( $this->logger );
+        return new WP_REST_Response( $manager->get_prefix_status(), 200 );
     }
 }

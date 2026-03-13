@@ -65,13 +65,19 @@ require_once WPSM_PATH . 'includes/auth/class-2fa-totp.php';
 require_once WPSM_PATH . 'includes/auth/class-2fa-email.php';
 require_once WPSM_PATH . 'includes/auth/class-2fa-magic-link.php';
 require_once WPSM_PATH . 'includes/auth/class-2fa-backup-codes.php';
-require_once WPSM_PATH . 'includes/auth/class-captcha-base.php';
+require_once WPS_PATH . 'includes/auth/class-captcha-base.php';
 require_once WPSM_PATH . 'includes/auth/class-captcha-math.php';
 
 // Extensions Module Classes
 require_once WPSM_PATH . 'includes/class-extensions-protection.php';
 require_once WPSM_PATH . 'includes/class-extension-auditor.php';
 require_once WPSM_PATH . 'includes/class-vulnerability-monitor.php';
+
+// Core Module Classes
+require_once WPSM_PATH . 'includes/class-core-hardening.php';
+require_once WPSM_PATH . 'includes/class-core-updates.php';
+require_once WPSM_PATH . 'includes/class-db-prefix-manager.php';
+require_once WPSM_PATH . 'includes/class-config-editor.php';
 
 /**
  * Inicialización
@@ -103,6 +109,10 @@ function run_wpsm() {
     $ext_auditor  = new WPSM_Extension_Auditor( $logger );
     $vuln_mon     = new WPSM_Vulnerability_Monitor( $logger, $settings );
 
+    // Iniciar módulos de core
+    $core_hard    = new WPSM_Core_Hardening( $logger, $settings );
+    $core_updates = new WPSM_Core_Updates( $logger, $settings );
+
     // Registrar proveedores 2FA
     $two_fa_mgr->register_provider( 'totp', new WPSM_2FA_TOTP() );
     $two_fa_mgr->register_provider( 'email', new WPSM_2FA_Email() );
@@ -129,6 +139,9 @@ function run_wpsm() {
     $ext_prot->init();
     $ext_auditor->init();
     $vuln_mon->init();
+
+    $core_hard->init();
+    $core_updates->init();
 
     // Captura de errores críticos
     set_error_handler( function( $errno, $errstr, $errfile, $errline ) use ( $logger ) {
