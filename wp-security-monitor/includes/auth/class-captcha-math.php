@@ -4,6 +4,9 @@
  */
 if ( ! defined( 'ABSPATH' ) ) exit;
 
+// Asegurar que la clase base esté cargada antes de definir la hija
+require_once plugin_dir_path( __FILE__ ) . 'class-captcha-base.php';
+
 class WPSM_Captcha_Math extends WPSM_Captcha_Base {
 
     public function render_field() {

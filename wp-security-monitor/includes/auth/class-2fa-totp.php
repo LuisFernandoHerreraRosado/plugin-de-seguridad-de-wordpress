@@ -7,16 +7,13 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 class WPSM_2FA_TOTP {
     /**
      * Valida el código TOTP
-     * Nota: En una implementación real se usaría el algoritmo HOTP/TOTP (RFC 6238)
+     * Nota: En una implementación real se requiere el algoritmo RFC 6238.
+     * Este proveedor actúa como un 'Secreto Estático' de segundo factor hasta la integración de librería.
      */
     public function validate_code( $user_id, $code ) {
         $secret = get_user_meta( $user_id, 'wpsm_2fa_totp_secret', true );
         if ( ! $secret ) return false;
 
-        // Implementación funcional para el MVP:
-        // El código debe coincidir con el secreto guardado (que actuaría como un código estático en ausencia de librería TOTP completa)
-        // O una validación basada en tiempo simplificada si fuera necesario.
-        // Eliminamos el código de prueba "123456".
         return hash_equals( (string)$secret, (string)$code );
     }
 

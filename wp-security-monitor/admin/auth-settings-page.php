@@ -57,10 +57,11 @@
             <tr>
                 <th scope="row"><?php _e( 'Modo', 'wp-security-monitor' ); ?></th>
                 <td>
+                    <?php $geo_mode = $this->settings->get_setting( 'geoip_mode', 'alert' ); ?>
                     <select name="geoip_mode">
-                        <option value="alert" <?php selected( $this->settings->get_setting( 'geoip_mode', 'alert' ), 'alert' ); ?>><?php _e( 'Solo Alerta', 'wp-security-monitor' ); ?></option>
-                        <option value="block" <?php selected( $this->settings->get_setting( 'geoip_mode', 'alert' ), 'block' ); ?>><?php _e( 'Bloquear', 'wp-security-monitor' ); ?></option>
-                        <option value="verify" <?php selected( $this->settings->get_setting( 'geoip_mode', 'alert' ), 'verify' ); ?>><?php _e( 'Verificación Extra', 'wp-security-monitor' ); ?></option>
+                        <option value="alert" <?php selected( $geo_mode, 'alert' ); ?>><?php _e( 'Solo Alerta', 'wp-security-monitor' ); ?></option>
+                        <option value="block" <?php selected( $geo_mode, 'block' ); ?>><?php _e( 'Bloquear', 'wp-security-monitor' ); ?></option>
+                        <option value="verify" <?php selected( $geo_mode, 'verify' ); ?>><?php _e( 'Verificación Extra', 'wp-security-monitor' ); ?></option>
                     </select>
                 </td>
             </tr>
@@ -103,9 +104,10 @@
             <tr>
                 <th scope="row"><?php _e( 'Complejidad', 'wp-security-monitor' ); ?></th>
                 <td>
+                    <?php $pwd_comp = $this->settings->get_setting( 'pwd_complexity', 'high' ); ?>
                     <select name="pwd_complexity">
-                        <option value="low" <?php selected( $this->settings->get_setting( 'pwd_complexity', 'high' ), 'low' ); ?>><?php _e( 'Baja (8+ chars)', 'wp-security-monitor' ); ?></option>
-                        <option value="high" <?php selected( $this->settings->get_setting( 'pwd_complexity', 'high' ), 'high' ); ?>><?php _e( 'Alta (Mayús, Minús, Núm, Sím)', 'wp-security-monitor' ); ?></option>
+                        <option value="low" <?php selected( $pwd_comp, 'low' ); ?>><?php _e( 'Baja (8+ chars)', 'wp-security-monitor' ); ?></option>
+                        <option value="high" <?php selected( $pwd_comp, 'high' ); ?>><?php _e( 'Alta (Mayús, Minús, Núm, Sím)', 'wp-security-monitor' ); ?></option>
                     </select>
                 </td>
             </tr>

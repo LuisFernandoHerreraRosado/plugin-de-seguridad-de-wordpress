@@ -65,8 +65,8 @@ require_once WPSM_PATH . 'includes/auth/class-2fa-totp.php';
 require_once WPSM_PATH . 'includes/auth/class-2fa-email.php';
 require_once WPSM_PATH . 'includes/auth/class-2fa-magic-link.php';
 require_once WPSM_PATH . 'includes/auth/class-2fa-backup-codes.php';
-require_once WPS_PATH . 'includes/auth/class-captcha-base.php';
-require_once WPSM_PATH . 'includes/auth/class-captcha-math.php';
+require_once WPSM_PATH . 'includes/auth/class-captcha-base.php';
+// Mover math captcha abajo para asegurar que base esté cargada
 
 // Extensions Module Classes
 require_once WPSM_PATH . 'includes/class-extensions-protection.php';
@@ -78,6 +78,9 @@ require_once WPSM_PATH . 'includes/class-core-hardening.php';
 require_once WPSM_PATH . 'includes/class-core-updates.php';
 require_once WPSM_PATH . 'includes/class-db-prefix-manager.php';
 require_once WPSM_PATH . 'includes/class-config-editor.php';
+
+// Cargar hijos de captcha tras la base
+require_once WPSM_PATH . 'includes/auth/class-captcha-math.php';
 
 /**
  * Inicialización

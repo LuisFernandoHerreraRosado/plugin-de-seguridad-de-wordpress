@@ -25,13 +25,18 @@ class WPSM_DB_Prefix_Manager {
             return new WP_Error( 'same_prefix', __( 'El prefijo es igual al actual.', 'wp-security-monitor' ) );
         }
 
-        // Lógica de respaldo de tablas (Simulación para MVP)
-        $this->logger->log( 'system_action', sprintf( __( 'Iniciando cambio de prefijo de base de datos a: %s', 'wp-security-monitor' ), $new_prefix ), 'critical' );
+        // Lógica de validación previa
+        if ( ! is_writable( ABSPATH . 'wp-config.php' ) ) {
+             return new WP_Error( 'config_not_writable', __( 'No se puede escribir en wp-config.php para actualizar el prefijo.', 'wp-security-monitor' ) );
+        }
 
-        // En una implementación real, aquí se renombrarían todas las tablas
-        // y se actualizarían las referencias en las tablas options y usermeta.
+        $this->logger->log( 'system_action', sprintf( __( 'Intento de cambio de prefijo a: %s (Simulado por seguridad)', 'wp-security-monitor' ), $new_prefix ), 'critical' );
 
-        return true;
+        // Nota técnica: Por seguridad del sitio, el cambio real de prefijo en tablas
+        // y campos usermeta/options debe hacerse manualmente o con una herramienta especializada
+        // de base de datos para evitar pérdida total de datos en caso de timeout.
+
+        return new WP_Error( 'feature_limited', __( 'El cambio de prefijo automático está deshabilitado en este módulo por seguridad. Use una herramienta de DB.', 'wp-security-monitor' ) );
     }
 
     /**
