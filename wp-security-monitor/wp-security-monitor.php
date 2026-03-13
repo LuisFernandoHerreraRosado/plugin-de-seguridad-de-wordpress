@@ -68,6 +68,11 @@ require_once WPSM_PATH . 'includes/auth/class-2fa-backup-codes.php';
 require_once WPSM_PATH . 'includes/auth/class-captcha-base.php';
 require_once WPSM_PATH . 'includes/auth/class-captcha-math.php';
 
+// Extensions Module Classes
+require_once WPSM_PATH . 'includes/class-extensions-protection.php';
+require_once WPSM_PATH . 'includes/class-extension-auditor.php';
+require_once WPSM_PATH . 'includes/class-vulnerability-monitor.php';
+
 /**
  * Inicialización
  */
@@ -93,6 +98,11 @@ function run_wpsm() {
     $two_fa_mgr   = new WPSM_2FA_Manager( $settings );
     $captcha      = new WPSM_Captcha_Math( $settings );
 
+    // Iniciar módulos de extensiones
+    $ext_prot     = new WPSM_Extensions_Protection( $logger, $settings );
+    $ext_auditor  = new WPSM_Extension_Auditor( $logger );
+    $vuln_mon     = new WPSM_Vulnerability_Monitor( $logger, $settings );
+
     // Registrar proveedores 2FA
     $two_fa_mgr->register_provider( 'totp', new WPSM_2FA_TOTP() );
     $two_fa_mgr->register_provider( 'email', new WPSM_2FA_Email() );
@@ -115,6 +125,10 @@ function run_wpsm() {
     $session_mgr->init();
     $two_fa_mgr->init();
     $captcha->register_hooks();
+
+    $ext_prot->init();
+    $ext_auditor->init();
+    $vuln_mon->init();
 
     // Captura de errores críticos
     set_error_handler( function( $errno, $errstr, $errfile, $errline ) use ( $logger ) {

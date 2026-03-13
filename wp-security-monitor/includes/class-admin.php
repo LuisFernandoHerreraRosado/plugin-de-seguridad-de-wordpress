@@ -20,6 +20,7 @@ class WPSM_Admin {
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
         add_action( 'admin_post_wpsm_save_settings', array( $this, 'save_settings' ) );
         add_action( 'admin_post_wpsm_save_auth_settings', array( $this, 'save_auth_settings' ) );
+        add_action( 'admin_post_wpsm_save_ext_settings', array( $this, 'save_ext_settings' ) );
         add_action( 'admin_post_wpsm_manual_scan', array( $this, 'run_manual_scan' ) );
         add_action( 'admin_post_wpsm_purge_logs', array( $this, 'purge_logs' ) );
         add_action( 'admin_post_wpsm_generate_api_key', array( $this, 'generate_api_key' ) );
@@ -51,6 +52,15 @@ class WPSM_Admin {
             'manage_options',
             'wpsm-auth',
             array( $this, 'render_auth_page' )
+        );
+
+        add_submenu_page(
+            'wp-security-monitor',
+            __( 'Plugins y Themes', 'wp-security-monitor' ),
+            __( 'Plugins & Themes', 'wp-security-monitor' ),
+            'manage_options',
+            'wpsm-extensions',
+            array( $this, 'render_extensions_page' )
         );
 
         add_submenu_page(
@@ -103,6 +113,10 @@ class WPSM_Admin {
 
     public function render_auth_page() {
         include WPSM_PATH . 'admin/auth-settings-page.php';
+    }
+
+    public function render_extensions_page() {
+        include WPSM_PATH . 'admin/extensions-settings-page.php';
     }
 
     public function render_api_page() {
@@ -158,6 +172,24 @@ class WPSM_Admin {
         }
 
         wp_redirect( admin_url( 'admin.php?page=wpsm-auth&settings-updated=true' ) );
+        exit;
+    }
+
+    public function save_ext_settings() {
+        check_admin_referer( 'wpsm_ext_settings_action' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_die( 'No autorizado' );
+
+        $keys = array( 'block_zip_upload', 'restrict_ext_ops', 'force_ftp', 'vulnerability_scan' );
+
+        foreach ( $keys as $key ) {
+            if ( isset( $_POST[$key] ) ) {
+                $this->settings->update_setting( $key, sanitize_text_field( $_POST[$key] ) );
+            } else {
+                $this->settings->update_setting( $key, 'no' );
+            }
+        }
+
+        wp_redirect( admin_url( 'admin.php?page=wpsm-extensions&settings-updated=true' ) );
         exit;
     }
 

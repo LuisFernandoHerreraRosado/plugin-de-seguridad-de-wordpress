@@ -31,7 +31,11 @@ class WPSM_Settings {
             'pwd_expiry_days'    => $this->get_setting( 'pwd_expiry_days', 90 ),
             'pwd_history_limit'  => $this->get_setting( 'pwd_history_limit', 5 ),
             'two_factor_enable'  => $this->get_setting( 'two_factor_enable', 'no' ),
-            'captcha_enable'     => $this->get_setting( 'captcha_enable', 'no' )
+            'captcha_enable'     => $this->get_setting( 'captcha_enable', 'no' ),
+            'block_zip_upload'   => $this->get_setting( 'block_zip_upload', 'no' ),
+            'restrict_ext_ops'   => $this->get_setting( 'restrict_ext_ops', 'no' ),
+            'force_ftp'          => $this->get_setting( 'force_ftp', 'no' ),
+            'vulnerability_scan' => $this->get_setting( 'vulnerability_scan', 'yes' )
         );
     }
 }

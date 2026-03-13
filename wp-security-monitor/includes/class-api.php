@@ -39,7 +39,6 @@ class WPSM_API {
             'permission_callback' => array( $this, 'check_permission' )
         ) );
 
-        // Nuevos endpoints para sesiones
         register_rest_route( $this->namespace, '/sessions', array(
             'methods'  => 'GET',
             'callback' => array( $this, 'get_active_sessions' ),
@@ -49,6 +48,25 @@ class WPSM_API {
         register_rest_route( $this->namespace, '/sessions/terminate', array(
             'methods'  => 'POST',
             'callback' => array( $this, 'terminate_session' ),
+            'permission_callback' => array( $this, 'check_permission' )
+        ) );
+
+        // Nuevos endpoints para extensiones
+        register_rest_route( $this->namespace, '/extensions', array(
+            'methods'  => 'GET',
+            'callback' => array( $this, 'get_extensions' ),
+            'permission_callback' => array( $this, 'check_permission' )
+        ) );
+
+        register_rest_route( $this->namespace, '/vulnerabilities', array(
+            'methods'  => 'GET',
+            'callback' => array( $this, 'get_vulnerabilities' ),
+            'permission_callback' => array( $this, 'check_permission' )
+        ) );
+
+        register_rest_route( $this->namespace, '/extensions/reinstall', array(
+            'methods'  => 'POST',
+            'callback' => array( $this, 'reinstall_extension' ),
             'permission_callback' => array( $this, 'check_permission' )
         ) );
     }
@@ -81,9 +99,6 @@ class WPSM_API {
         return new WP_REST_Response( $this->logger->get_logs( 20, 0 ), 200 );
     }
 
-    /**
-     * Endpoint para obtener sesiones activas (Dashboard Externo)
-     */
     public function get_active_sessions( $request ) {
         $user_id = $request->get_param( 'user_id' );
         if ( ! $user_id ) return new WP_Error( 'missing_user_id', 'User ID is required', array( 'status' => 400 ) );
@@ -92,9 +107,6 @@ class WPSM_API {
         return new WP_REST_Response( $manager->get_all(), 200 );
     }
 
-    /**
-     * Endpoint para terminar sesiones remotamente
-     */
     public function terminate_session( $request ) {
         $user_id = $request->get_param( 'user_id' );
         $verifier = $request->get_param( 'verifier' );
@@ -107,6 +119,38 @@ class WPSM_API {
             $manager->destroy( $verifier );
         } else {
             $manager->destroy_all();
+        }
+
+        return new WP_REST_Response( array( 'success' => true ), 200 );
+    }
+
+    /**
+     * Obtiene auditoría completa de extensiones
+     */
+    public function get_extensions( $request ) {
+        $auditor = new WPSM_Extension_Auditor( $this->logger );
+        return new WP_REST_Response( $auditor->audit_all_extensions(), 200 );
+    }
+
+    /**
+     * Obtiene hallazgos de vulnerabilidades
+     */
+    public function get_vulnerabilities( $request ) {
+        return new WP_REST_Response( get_option( 'wpsm_vulnerability_findings', array() ), 200 );
+    }
+
+    /**
+     * Reinstala una extensión remotamente
+     */
+    public function reinstall_extension( $request ) {
+        $slug = $request->get_param( 'slug' );
+        if ( ! $slug ) return new WP_Error( 'missing_slug', 'Slug is required', array( 'status' => 400 ) );
+
+        $auditor = new WPSM_Extension_Auditor( $this->logger );
+        $result = $auditor->reinstall_from_repo( $slug );
+
+        if ( is_wp_error( $result ) ) {
+            return $result;
         }
 
         return new WP_REST_Response( array( 'success' => true ), 200 );
