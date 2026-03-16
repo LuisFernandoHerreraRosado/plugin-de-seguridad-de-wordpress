@@ -18,8 +18,40 @@ class WPSM_GeoIP {
             return;
         }
 
+        // Global request filtering
+        add_action( 'init', array( $this, 'filter_request_by_geo' ), 5 );
+
+        // Login specific hooks
         add_action( 'wp_login', array( $this, 'validate_login_geography' ), 10, 2 );
         add_action( 'wp_login_failed', array( $this, 'log_failed_login_geography' ) );
+    }
+
+    public function filter_request_by_geo() {
+        if ( is_admin() && ! defined( 'DOING_AJAX' ) ) return;
+
+        $ip = $this->get_ip();
+        $geo = $this->get_geo_data( $ip );
+
+        $mode = $this->settings->get_setting( 'geoip_global_mode', 'whitelist' ); // whitelist or blacklist
+        $countries_str = $this->settings->get_setting( 'geoip_countries', '' );
+        $countries = ! empty( $countries_str ) ? array_map( 'trim', explode( ',', $countries_str ) ) : array();
+
+        if ( empty( $countries ) ) return;
+
+        $is_in_list = in_array( $geo['country_code'], $countries );
+        $should_block = false;
+
+        if ( $mode === 'whitelist' && ! $is_in_list ) {
+            $should_block = true;
+        } elseif ( $mode === 'blacklist' && $is_in_list ) {
+            $should_block = true;
+        }
+
+        if ( $should_block ) {
+            $this->logger->log( 'geoip_blocked', sprintf( __( 'Acceso denegado por GeoIP desde %s (%s)', 'wp-security-monitor' ), $geo['country'], $geo['country_code'] ), 'high', $geo );
+            status_header( 403 );
+            wp_die( __( 'Acceso denegado desde su ubicación geográfica.', 'wp-security-monitor' ), 'GeoIP Blocked', array( 'response' => 403 ) );
+        }
     }
 
     public function validate_login_geography( $user_login, $user ) {
@@ -52,7 +84,7 @@ class WPSM_GeoIP {
         $this->logger->log( 'geoip_failed_attempt', sprintf( __( 'Fallo de login desde %s, %s (IP: %s)', 'wp-security-monitor' ), $geo['city'], $geo['country'], $ip ), 'medium', $geo );
     }
 
-    private function get_geo_data( $ip ) {
+    public function get_geo_data( $ip ) {
         if ( $ip === '127.0.0.1' || $ip === '::1' ) {
             return array( 'country' => 'Localhost', 'country_code' => 'LH', 'city' => 'Localhost' );
         }

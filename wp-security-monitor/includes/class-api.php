@@ -9,11 +9,13 @@ class WPSM_API {
     private $logger;
     private $scanner;
     private $integrity;
+    private $malware_scanner;
 
-    public function __construct( $logger, $scanner, $integrity ) {
+    public function __construct( $logger, $scanner, $integrity, $malware_scanner = null ) {
         $this->logger = $logger;
         $this->scanner = $scanner;
         $this->integrity = $integrity;
+        $this->malware_scanner = $malware_scanner;
     }
 
     public function init() {
@@ -80,6 +82,18 @@ class WPSM_API {
         register_rest_route( $this->namespace, '/database/prefix', array(
             'methods'  => 'GET',
             'callback' => array( $this, 'get_db_status' ),
+            'permission_callback' => array( $this, 'check_permission' )
+        ) );
+
+        register_rest_route( $this->namespace, '/malware/status', array(
+            'methods'  => 'GET',
+            'callback' => array( $this, 'get_malware_status' ),
+            'permission_callback' => array( $this, 'check_permission' )
+        ) );
+
+        register_rest_route( $this->namespace, '/malware/scan', array(
+            'methods'  => 'POST',
+            'callback' => array( $this, 'run_malware_scan' ),
             'permission_callback' => array( $this, 'check_permission' )
         ) );
 
@@ -250,6 +264,27 @@ class WPSM_API {
     public function get_db_status( $request ) {
         $manager = new WPSM_DB_Prefix_Manager( $this->logger );
         return new WP_REST_Response( $manager->get_prefix_status(), 200 );
+    }
+
+    /**
+     * Obtiene los resultados del último escaneo de malware e historial
+     */
+    public function get_malware_status( $request ) {
+        return new WP_REST_Response( array(
+            'last_results' => get_option( 'wpsm_malware_last_results' ),
+            'history'      => get_option( 'wpsm_malware_history' )
+        ), 200 );
+    }
+
+    /**
+     * Inicia un escaneo de malware vía API
+     */
+    public function run_malware_scan( $request ) {
+        if ( ! $this->malware_scanner ) {
+            return new WP_Error( 'scanner_not_found', 'Malware scanner not initialized', array( 'status' => 500 ) );
+        }
+        $results = $this->malware_scanner->run_full_scan();
+        return new WP_REST_Response( array( 'success' => true, 'results' => $results ), 200 );
     }
 
 }
