@@ -8,11 +8,13 @@ class WPSM_Admin {
     private $scanner;
     private $logger;
     private $settings;
+    private $malware_scanner;
 
-    public function __construct( $scanner, $logger, $settings ) {
+    public function __construct( $scanner, $logger, $settings, $malware_scanner = null ) {
         $this->scanner = $scanner;
         $this->logger = $logger;
         $this->settings = $settings;
+        $this->malware_scanner = $malware_scanner;
     }
 
     public function init() {
@@ -26,8 +28,11 @@ class WPSM_Admin {
         add_action( 'admin_post_wpsm_change_db_prefix', array( $this, 'change_db_prefix' ) );
 
         add_action( 'admin_post_wpsm_save_sensitive_settings', array( $this, 'save_sensitive_settings' ) );
+        add_action( 'admin_post_wpsm_save_firewall_settings', array( $this, 'save_firewall_settings' ) );
 
         add_action( 'admin_post_wpsm_manual_scan', array( $this, 'run_manual_scan' ) );
+        add_action( 'admin_post_wpsm_malware_scan', array( $this, 'run_malware_scan' ) );
+        add_action( 'admin_post_wpsm_save_malware_settings', array( $this, 'save_malware_settings' ) );
         add_action( 'admin_post_wpsm_purge_logs', array( $this, 'purge_logs' ) );
         add_action( 'admin_post_wpsm_generate_api_key', array( $this, 'generate_api_key' ) );
     }
@@ -49,6 +54,24 @@ class WPSM_Admin {
             'Dashboard',
             'manage_options',
             'wp-security-monitor'
+        );
+
+        add_submenu_page(
+            'wp-security-monitor',
+            __( 'Malware Scanners', 'wp-security-monitor' ),
+            __( 'Malware Scanners', 'wp-security-monitor' ),
+            'manage_options',
+            'wpsm-malware-scanner',
+            array( $this, 'render_malware_scanner' )
+        );
+
+        add_submenu_page(
+            'wp-security-monitor',
+            'Firewall y GeoIP',
+            'Firewall y GeoIP',
+            'manage_options',
+            'wpsm-firewall',
+            array( $this, 'render_firewall_page' )
         );
 
         add_submenu_page(
@@ -126,6 +149,14 @@ class WPSM_Admin {
 
     public function render_dashboard() {
         include WPSM_PATH . 'admin/admin-page.php';
+    }
+
+    public function render_malware_scanner() {
+        include WPSM_PATH . 'admin/malware-scanner-page.php';
+    }
+
+    public function render_firewall_page() {
+        include WPSM_PATH . 'admin/firewall-page.php';
     }
 
     public function render_sensitive_data() {
@@ -268,6 +299,65 @@ class WPSM_Admin {
         $this->scanner->run_scan();
 
         wp_redirect( admin_url( 'admin.php?page=wp-security-monitor&scan-complete=true' ) );
+        exit;
+    }
+
+    public function run_malware_scan() {
+        check_admin_referer( 'wpsm_malware_scan_action' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_die( 'No autorizado' );
+
+        if ( $this->malware_scanner ) {
+            $this->malware_scanner->run_full_scan();
+        }
+
+        wp_redirect( admin_url( 'admin.php?page=wpsm-malware-scanner&scan-complete=true' ) );
+        exit;
+    }
+
+    public function save_malware_settings() {
+        check_admin_referer( 'wpsm_malware_settings_action' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_die( 'No autorizado' );
+
+        if ( isset( $_POST['exclusions'] ) ) {
+            $exclusions = array_map( 'trim', explode( "\n", $_POST['exclusions'] ) );
+            $exclusions = array_filter( $exclusions );
+            update_option( 'wpsm_malware_exclusions', $exclusions );
+        }
+
+        wp_redirect( admin_url( 'admin.php?page=wpsm-malware-scanner&settings-updated=true' ) );
+        exit;
+    }
+
+    public function save_firewall_settings() {
+        check_admin_referer( 'wpsm_firewall_settings_action' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_die( 'No autorizado' );
+
+        $keys = array(
+            'firewall_enable',
+            'block_ai_bots',
+            'block_fake_seo_bots',
+            'firewall_bad_uas',
+            'firewall_bad_referrers',
+            'geoip_enable',
+            'geoip_global_mode',
+            'geoip_countries'
+        );
+
+        foreach ( $keys as $key ) {
+            if ( isset( $_POST[$key] ) ) {
+                if ( in_array( $key, array( 'firewall_bad_uas', 'firewall_bad_referrers' ) ) ) {
+                    $this->settings->update_setting( $key, sanitize_textarea_field( $_POST[$key] ) );
+                } else {
+                    $this->settings->update_setting( $key, sanitize_text_field( $_POST[$key] ) );
+                }
+            } else {
+                if ( in_array( $key, array( 'firewall_enable', 'block_ai_bots', 'block_fake_seo_bots', 'geoip_enable' ) ) ) {
+                    $this->settings->update_setting( $key, 'no' );
+                }
+            }
+        }
+
+        wp_redirect( admin_url( 'admin.php?page=wpsm-firewall&settings-updated=true' ) );
         exit;
     }
 

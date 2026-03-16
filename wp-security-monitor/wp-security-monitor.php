@@ -31,6 +31,33 @@ function wpsm_activate() {
     $integrity = new WPSM_File_Integrity();
     $integrity->create_tables();
 
+    // Crear tablas de malware scanner
+    require_once WPSM_PATH . 'includes/class-malware-scanner.php';
+    global $wpdb;
+    $charset_collate = $wpdb->get_charset_collate();
+    $table_malware = $wpdb->prefix . 'wpsm_malware_scans';
+    $sql = "CREATE TABLE $table_malware (
+        id bigint(20) NOT NULL AUTO_INCREMENT,
+        scan_time datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+        results longtext NOT NULL,
+        risk_score int(3) NOT NULL,
+        PRIMARY KEY  (id)
+    ) $charset_collate;";
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+    dbDelta( $sql );
+
+    // Tabla de historial de malware
+    $table_history = $wpdb->prefix . 'wpsm_malware_history';
+    $sql_hist = "CREATE TABLE $table_history (
+        id bigint(20) NOT NULL AUTO_INCREMENT,
+        event_time datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+        event_type varchar(50) NOT NULL,
+        severity varchar(20) NOT NULL,
+        details text NOT NULL,
+        PRIMARY KEY  (id)
+    ) $charset_collate;";
+    dbDelta( $sql_hist );
+
     require_once WPSM_PATH . 'includes/class-site-identity.php';
     WPSM_Site_Identity::get_instance()->get_uuid(); // Genera UUID si no existe
 
@@ -46,12 +73,14 @@ require_once WPSM_PATH . 'includes/class-site-identity.php';
 require_once WPSM_PATH . 'includes/class-alerts.php';
 require_once WPSM_PATH . 'includes/class-settings.php';
 require_once WPSM_PATH . 'includes/class-scanner.php';
+require_once WPSM_PATH . 'includes/class-malware-scanner.php';
 require_once WPSM_PATH . 'includes/class-file-integrity.php';
 require_once WPSM_PATH . 'includes/class-login-monitor.php';
 require_once WPSM_PATH . 'includes/class-cron.php';
 require_once WPSM_PATH . 'includes/class-api.php';
 require_once WPSM_PATH . 'includes/class-remote-sync.php';
 require_once WPSM_PATH . 'includes/class-sensitive-data.php';
+require_once WPSM_PATH . 'includes/class-firewall.php';
 require_once WPSM_PATH . 'includes/class-admin.php';
 
 // Auth Module Classes
@@ -91,13 +120,15 @@ function run_wpsm() {
     $alerts       = new WPSM_Alerts();
     $settings     = new WPSM_Settings();
     $integrity    = new WPSM_File_Integrity();
+    $malware_scanner = new WPSM_Malware_Scanner( $logger );
     $scanner      = new WPSM_Scanner( $logger, $integrity );
     $login_mon    = new WPSM_Login_Monitor( $logger );
     $cron         = new WPSM_Cron( $scanner );
-    $api          = new WPSM_API( $logger, $scanner, $integrity );
+    $api          = new WPSM_API( $logger, $scanner, $integrity, $malware_scanner );
     $remote_sync  = new WPSM_Remote_Sync( $logger );
     $sensitive    = new WPSM_Sensitive_Data( $logger );
-    $admin        = new WPSM_Admin( $scanner, $logger, $settings );
+    $firewall     = new WPSM_Firewall( $logger, $settings );
+    $admin        = new WPSM_Admin( $scanner, $logger, $settings, $malware_scanner );
 
     // Iniciar módulos de autenticación y seguridad
     $custom_login = new WPSM_Custom_Login( $settings );
@@ -130,6 +161,7 @@ function run_wpsm() {
     $api->init();
     $remote_sync->init();
     $sensitive->init();
+    $firewall->init();
     $admin->init();
 
     // Iniciar nuevos módulos
