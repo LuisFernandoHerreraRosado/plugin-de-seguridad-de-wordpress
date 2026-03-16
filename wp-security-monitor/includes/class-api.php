@@ -94,6 +94,18 @@ class WPSM_API {
             'callback' => array( $this, 'update_sensitive_settings' ),
             'permission_callback' => array( $this, 'check_permission' )
         ) );
+
+        register_rest_route( $this->namespace, '/firewall/status', array(
+            'methods'  => 'GET',
+            'callback' => array( $this, 'get_firewall_status' ),
+            'permission_callback' => array( $this, 'check_permission' )
+        ) );
+
+        register_rest_route( $this->namespace, '/firewall/rules', array(
+            'methods'  => 'POST',
+            'callback' => array( $this, 'update_firewall_rules' ),
+            'permission_callback' => array( $this, 'check_permission' )
+        ) );
     }
 
     public function check_permission( $request ) {
@@ -250,6 +262,35 @@ class WPSM_API {
     public function get_db_status( $request ) {
         $manager = new WPSM_DB_Prefix_Manager( $this->logger );
         return new WP_REST_Response( $manager->get_prefix_status(), 200 );
+    }
+
+    public function get_firewall_status( $request ) {
+        $settings = new WPSM_Settings();
+        return new WP_REST_Response( array(
+            'enabled' => $settings->get_setting( 'firewall_enable' ),
+            'rules'   => get_option( 'wpsm_firewall_rules', array() )
+        ), 200 );
+    }
+
+    public function update_firewall_rules( $request ) {
+        $rules = $request->get_param( 'rules' );
+        if ( ! is_array( $rules ) ) {
+            return new WP_Error( 'invalid_rules', 'Rules must be an array', array( 'status' => 400 ) );
+        }
+
+        // Basic validation
+        foreach ( $rules as $rule ) {
+            if ( ! isset( $rule['pattern'] ) || ! isset( $rule['type'] ) ) {
+                return new WP_Error( 'invalid_rule_structure', 'Each rule must have a pattern and a type', array( 'status' => 400 ) );
+            }
+            // Validate regex
+            if ( @preg_match( '/' . str_replace( '/', '\/', $rule['pattern'] ) . '/', '' ) === false ) {
+                return new WP_Error( 'invalid_regex', 'Invalid regex pattern: ' . $rule['pattern'], array( 'status' => 400 ) );
+            }
+        }
+
+        update_option( 'wpsm_firewall_rules', $rules );
+        return new WP_REST_Response( array( 'success' => true ), 200 );
     }
 
 }
