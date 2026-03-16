@@ -19,10 +19,14 @@ class WPSM_Admin {
         add_action( 'admin_menu', array( $this, 'add_menu_pages' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
         add_action( 'admin_post_wpsm_save_settings', array( $this, 'save_settings' ) );
+
         add_action( 'admin_post_wpsm_save_auth_settings', array( $this, 'save_auth_settings' ) );
         add_action( 'admin_post_wpsm_save_ext_settings', array( $this, 'save_ext_settings' ) );
         add_action( 'admin_post_wpsm_save_core_settings', array( $this, 'save_core_settings' ) );
         add_action( 'admin_post_wpsm_change_db_prefix', array( $this, 'change_db_prefix' ) );
+
+        add_action( 'admin_post_wpsm_save_sensitive_settings', array( $this, 'save_sensitive_settings' ) );
+
         add_action( 'admin_post_wpsm_manual_scan', array( $this, 'run_manual_scan' ) );
         add_action( 'admin_post_wpsm_purge_logs', array( $this, 'purge_logs' ) );
         add_action( 'admin_post_wpsm_generate_api_key', array( $this, 'generate_api_key' ) );
@@ -49,6 +53,7 @@ class WPSM_Admin {
 
         add_submenu_page(
             'wp-security-monitor',
+
             __( 'WordPress Core', 'wp-security-monitor' ),
             __( 'WordPress core', 'wp-security-monitor' ),
             'manage_options',
@@ -72,6 +77,13 @@ class WPSM_Admin {
             'manage_options',
             'wpsm-extensions',
             array( $this, 'render_extensions_page' )
+
+            'Datos Sensibles',
+            'Datos Sensibles',
+            'manage_options',
+            'wpsm-sensitive-data',
+            array( $this, 'render_sensitive_data' )
+
         );
 
         add_submenu_page(
@@ -112,6 +124,10 @@ class WPSM_Admin {
 
     public function render_dashboard() {
         include WPSM_PATH . 'admin/admin-page.php';
+    }
+
+    public function render_sensitive_data() {
+        include WPSM_PATH . 'admin/sensitive-data-page.php';
     }
 
     public function render_logs() {
@@ -271,6 +287,47 @@ class WPSM_Admin {
         update_option( 'wpsm_api_key', $new_key );
 
         wp_redirect( admin_url( 'admin.php?page=wpsm-api&key-generated=true' ) );
+        exit;
+    }
+
+    public function save_sensitive_settings() {
+        check_admin_referer( 'wpsm_sensitive_settings_action' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_die( 'No autorizado' );
+
+        $old_author_base = get_option( 'wpsm_author_base', 'profile' );
+
+        $options = array(
+            'wpsm_xmlrpc_status'           => 'enabled',
+            'wpsm_xmlrpc_limit_multicall'  => 'no',
+            'wpsm_author_base'             => 'profile',
+            'wpsm_disable_author_archives' => 'no',
+            'wpsm_anti_hotlink'            => 'no',
+            'wpsm_anti_404_guessing'       => 'no',
+            'wpsm_robots_blackhole'        => 'no',
+            'wpsm_hide_wp_version'         => 'no',
+            'wpsm_block_sensitive_files'   => 'no',
+            'wpsm_disable_php_disclosure'  => 'no',
+            'wpsm_disable_directory_listing' => 'no'
+        );
+
+        foreach ( $options as $key => $default ) {
+            if ( isset( $_POST[$key] ) ) {
+                $val = sanitize_text_field( $_POST[$key] );
+                if ( $key === 'wpsm_author_base' ) {
+                    $val = sanitize_title( $val );
+                }
+                update_option( $key, $val );
+            } else {
+                update_option( $key, $default );
+            }
+        }
+
+        $new_author_base = get_option( 'wpsm_author_base', 'profile' );
+        if ( $old_author_base !== $new_author_base ) {
+            flush_rewrite_rules();
+        }
+
+        wp_redirect( admin_url( 'admin.php?page=wpsm-sensitive-data&settings-updated=true' ) );
         exit;
     }
 }
