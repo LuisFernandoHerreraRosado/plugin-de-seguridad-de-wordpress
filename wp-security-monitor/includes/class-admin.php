@@ -8,11 +8,13 @@ class WPSM_Admin {
     private $scanner;
     private $logger;
     private $settings;
+    private $malware_scanner;
 
-    public function __construct( $scanner, $logger, $settings ) {
+    public function __construct( $scanner, $logger, $settings, $malware_scanner = null ) {
         $this->scanner = $scanner;
         $this->logger = $logger;
         $this->settings = $settings;
+        $this->malware_scanner = $malware_scanner;
     }
 
     public function init() {
@@ -28,6 +30,8 @@ class WPSM_Admin {
         add_action( 'admin_post_wpsm_save_sensitive_settings', array( $this, 'save_sensitive_settings' ) );
 
         add_action( 'admin_post_wpsm_manual_scan', array( $this, 'run_manual_scan' ) );
+        add_action( 'admin_post_wpsm_malware_scan', array( $this, 'run_malware_scan' ) );
+        add_action( 'admin_post_wpsm_save_malware_settings', array( $this, 'save_malware_settings' ) );
         add_action( 'admin_post_wpsm_purge_logs', array( $this, 'purge_logs' ) );
         add_action( 'admin_post_wpsm_generate_api_key', array( $this, 'generate_api_key' ) );
     }
@@ -41,6 +45,15 @@ class WPSM_Admin {
             array( $this, 'render_dashboard' ),
             'dashicons-shield',
             80
+        );
+
+        add_submenu_page(
+            'wp-security-monitor',
+            __( 'Malware Scanners', 'wp-security-monitor' ),
+            __( 'Malware Scanners', 'wp-security-monitor' ),
+            'manage_options',
+            'wpsm-malware-scanner',
+            array( $this, 'render_malware_scanner' )
         );
 
         add_submenu_page(
@@ -126,6 +139,10 @@ class WPSM_Admin {
 
     public function render_dashboard() {
         include WPSM_PATH . 'admin/admin-page.php';
+    }
+
+    public function render_malware_scanner() {
+        include WPSM_PATH . 'admin/malware-scanner-page.php';
     }
 
     public function render_sensitive_data() {
@@ -268,6 +285,32 @@ class WPSM_Admin {
         $this->scanner->run_scan();
 
         wp_redirect( admin_url( 'admin.php?page=wp-security-monitor&scan-complete=true' ) );
+        exit;
+    }
+
+    public function run_malware_scan() {
+        check_admin_referer( 'wpsm_malware_scan_action' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_die( 'No autorizado' );
+
+        if ( $this->malware_scanner ) {
+            $this->malware_scanner->run_full_scan();
+        }
+
+        wp_redirect( admin_url( 'admin.php?page=wpsm-malware-scanner&scan-complete=true' ) );
+        exit;
+    }
+
+    public function save_malware_settings() {
+        check_admin_referer( 'wpsm_malware_settings_action' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_die( 'No autorizado' );
+
+        if ( isset( $_POST['exclusions'] ) ) {
+            $exclusions = array_map( 'trim', explode( "\n", $_POST['exclusions'] ) );
+            $exclusions = array_filter( $exclusions );
+            update_option( 'wpsm_malware_exclusions', $exclusions );
+        }
+
+        wp_redirect( admin_url( 'admin.php?page=wpsm-malware-scanner&settings-updated=true' ) );
         exit;
     }
 
