@@ -13,12 +13,16 @@ class WPSM_Cron {
 
     public function init() {
         add_action( 'wpsm_scheduled_scan', array( $this, 'execute_scan' ) );
+        add_action( 'wpsm_scheduled_malware_scan', array( $this, 'execute_malware_scan' ) );
         add_action( 'wpsm_scheduled_sync', array( $this, 'execute_sync' ) );
     }
 
     public static function register_defaults() {
         if ( ! wp_next_scheduled( 'wpsm_scheduled_scan' ) ) {
             wp_schedule_event( time(), 'daily', 'wpsm_scheduled_scan' );
+        }
+        if ( ! wp_next_scheduled( 'wpsm_scheduled_malware_scan' ) ) {
+            wp_schedule_event( time() + 3600, 'daily', 'wpsm_scheduled_malware_scan' );
         }
         if ( ! wp_next_scheduled( 'wpsm_scheduled_sync' ) ) {
             wp_schedule_event( time(), 'hourly', 'wpsm_scheduled_sync' );
@@ -29,6 +33,12 @@ class WPSM_Cron {
         if ( $this->scanner ) {
             $this->scanner->run_scan();
         }
+    }
+
+    public function execute_malware_scan() {
+        $logger = new WPSM_Logger();
+        $malware_scanner = new WPSM_Malware_Scanner( $logger );
+        $malware_scanner->run_full_scan();
     }
 
     public function execute_sync() {
