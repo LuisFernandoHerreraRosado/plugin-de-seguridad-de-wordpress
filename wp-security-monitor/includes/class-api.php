@@ -38,6 +38,18 @@ class WPSM_API {
             'callback' => array( $this, 'get_logs' ),
             'permission_callback' => array( $this, 'check_permission' )
         ) );
+
+        register_rest_route( $this->namespace, '/sensitive-data', array(
+            'methods'  => 'GET',
+            'callback' => array( $this, 'get_sensitive_settings' ),
+            'permission_callback' => array( $this, 'check_permission' )
+        ) );
+
+        register_rest_route( $this->namespace, '/sensitive-data', array(
+            'methods'  => 'POST',
+            'callback' => array( $this, 'update_sensitive_settings' ),
+            'permission_callback' => array( $this, 'check_permission' )
+        ) );
     }
 
     public function check_permission( $request ) {
@@ -66,5 +78,64 @@ class WPSM_API {
 
     public function get_logs( $request ) {
         return new WP_REST_Response( $this->logger->get_logs( 20, 0 ), 200 );
+    }
+
+    public function get_sensitive_settings( $request ) {
+        $options = array(
+            'wpsm_xmlrpc_status',
+            'wpsm_xmlrpc_limit_multicall',
+            'wpsm_author_base',
+            'wpsm_disable_author_archives',
+            'wpsm_anti_hotlink',
+            'wpsm_anti_404_guessing',
+            'wpsm_robots_blackhole',
+            'wpsm_hide_wp_version',
+            'wpsm_block_sensitive_files',
+            'wpsm_disable_php_disclosure',
+            'wpsm_disable_directory_listing'
+        );
+
+        $settings = array();
+        foreach ( $options as $option ) {
+            $settings[$option] = get_option( $option );
+        }
+
+        return new WP_REST_Response( $settings, 200 );
+    }
+
+    public function update_sensitive_settings( $request ) {
+        $params = $request->get_params();
+        $old_author_base = get_option( 'wpsm_author_base', 'profile' );
+
+        $options = array(
+            'wpsm_xmlrpc_status',
+            'wpsm_xmlrpc_limit_multicall',
+            'wpsm_author_base',
+            'wpsm_disable_author_archives',
+            'wpsm_anti_hotlink',
+            'wpsm_anti_404_guessing',
+            'wpsm_robots_blackhole',
+            'wpsm_hide_wp_version',
+            'wpsm_block_sensitive_files',
+            'wpsm_disable_php_disclosure',
+            'wpsm_disable_directory_listing'
+        );
+
+        foreach ( $options as $option ) {
+            if ( isset( $params[$option] ) ) {
+                $val = sanitize_text_field( $params[$option] );
+                if ( $option === 'wpsm_author_base' ) {
+                    $val = sanitize_title( $val );
+                }
+                update_option( $option, $val );
+            }
+        }
+
+        $new_author_base = get_option( 'wpsm_author_base', 'profile' );
+        if ( $old_author_base !== $new_author_base ) {
+            flush_rewrite_rules();
+        }
+
+        return new WP_REST_Response( array( 'success' => true ), 200 );
     }
 }

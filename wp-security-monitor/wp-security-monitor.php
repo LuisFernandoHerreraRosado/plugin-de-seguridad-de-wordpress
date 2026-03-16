@@ -51,6 +51,7 @@ require_once WPSM_PATH . 'includes/class-login-monitor.php';
 require_once WPSM_PATH . 'includes/class-cron.php';
 require_once WPSM_PATH . 'includes/class-api.php';
 require_once WPSM_PATH . 'includes/class-remote-sync.php';
+require_once WPSM_PATH . 'includes/class-sensitive-data.php';
 require_once WPSM_PATH . 'includes/class-admin.php';
 
 /**
@@ -66,6 +67,7 @@ function run_wpsm() {
     $cron         = new WPSM_Cron( $scanner );
     $api          = new WPSM_API( $logger, $scanner, $integrity );
     $remote_sync  = new WPSM_Remote_Sync( $logger );
+    $sensitive    = new WPSM_Sensitive_Data( $logger );
     $admin        = new WPSM_Admin( $scanner, $logger, $settings );
 
     // Iniciar módulos
@@ -73,6 +75,7 @@ function run_wpsm() {
     $cron->init();
     $api->init();
     $remote_sync->init();
+    $sensitive->init();
     $admin->init();
 
     // Captura de errores críticos
