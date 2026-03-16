@@ -26,6 +26,7 @@ class WPSM_Admin {
         add_action( 'admin_post_wpsm_change_db_prefix', array( $this, 'change_db_prefix' ) );
 
         add_action( 'admin_post_wpsm_save_sensitive_settings', array( $this, 'save_sensitive_settings' ) );
+        add_action( 'admin_post_wpsm_save_firewall_settings', array( $this, 'save_firewall_settings' ) );
 
         add_action( 'admin_post_wpsm_manual_scan', array( $this, 'run_manual_scan' ) );
         add_action( 'admin_post_wpsm_purge_logs', array( $this, 'purge_logs' ) );
@@ -77,6 +78,15 @@ class WPSM_Admin {
             'manage_options',
             'wpsm-extensions',
             array( $this, 'render_extensions_page' )
+        );
+
+        add_submenu_page(
+            'wp-security-monitor',
+            'Firewall y GeoIP',
+            'Firewall y GeoIP',
+            'manage_options',
+            'wpsm-firewall',
+            array( $this, 'render_firewall_page' )
         );
 
         add_submenu_page(
@@ -154,6 +164,10 @@ class WPSM_Admin {
 
     public function render_api_page() {
         include WPSM_PATH . 'admin/api-page.php';
+    }
+
+    public function render_firewall_page() {
+        include WPSM_PATH . 'admin/firewall-page.php';
     }
 
     public function save_settings() {
@@ -289,6 +303,39 @@ class WPSM_Admin {
         update_option( 'wpsm_api_key', $new_key );
 
         wp_redirect( admin_url( 'admin.php?page=wpsm-api&key-generated=true' ) );
+        exit;
+    }
+
+    public function save_firewall_settings() {
+        check_admin_referer( 'wpsm_firewall_settings_action' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_die( 'No autorizado' );
+
+        $keys = array(
+            'firewall_enable',
+            'block_ai_bots',
+            'block_fake_seo_bots',
+            'firewall_bad_uas',
+            'firewall_bad_referrers',
+            'geoip_enable',
+            'geoip_global_mode',
+            'geoip_countries'
+        );
+
+        foreach ( $keys as $key ) {
+            if ( isset( $_POST[$key] ) ) {
+                if ( in_array( $key, array( 'firewall_bad_uas', 'firewall_bad_referrers' ) ) ) {
+                    $this->settings->update_setting( $key, sanitize_textarea_field( $_POST[$key] ) );
+                } else {
+                    $this->settings->update_setting( $key, sanitize_text_field( $_POST[$key] ) );
+                }
+            } else {
+                if ( in_array( $key, array( 'firewall_enable', 'block_ai_bots', 'block_fake_seo_bots', 'geoip_enable' ) ) ) {
+                    $this->settings->update_setting( $key, 'no' );
+                }
+            }
+        }
+
+        wp_redirect( admin_url( 'admin.php?page=wpsm-firewall&settings-updated=true' ) );
         exit;
     }
 
