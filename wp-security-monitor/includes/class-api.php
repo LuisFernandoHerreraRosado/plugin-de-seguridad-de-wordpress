@@ -80,6 +80,8 @@ class WPSM_API {
         register_rest_route( $this->namespace, '/database/prefix', array(
             'methods'  => 'GET',
             'callback' => array( $this, 'get_db_status' ),
+            'permission_callback' => array( $this, 'check_permission' )
+        ) );
 
         register_rest_route( $this->namespace, '/sensitive-data', array(
             'methods'  => 'GET',
@@ -90,7 +92,6 @@ class WPSM_API {
         register_rest_route( $this->namespace, '/sensitive-data', array(
             'methods'  => 'POST',
             'callback' => array( $this, 'update_sensitive_settings' ),
-
             'permission_callback' => array( $this, 'check_permission' )
         ) );
     }
@@ -144,6 +145,9 @@ class WPSM_API {
             $manager->destroy( $verifier );
         } else {
             $manager->destroy_all();
+        }
+        return new WP_REST_Response( array( 'success' => true ), 200 );
+    }
 
     public function get_sensitive_settings( $request ) {
         $options = array(
@@ -199,7 +203,6 @@ class WPSM_API {
         $new_author_base = get_option( 'wpsm_author_base', 'profile' );
         if ( $old_author_base !== $new_author_base ) {
             flush_rewrite_rules();
-
         }
 
         return new WP_REST_Response( array( 'success' => true ), 200 );

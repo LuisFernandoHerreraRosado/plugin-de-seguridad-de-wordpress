@@ -77,13 +77,15 @@ class WPSM_Admin {
             'manage_options',
             'wpsm-extensions',
             array( $this, 'render_extensions_page' )
+        );
 
+        add_submenu_page(
+            'wp-security-monitor',
             'Datos Sensibles',
             'Datos Sensibles',
             'manage_options',
             'wpsm-sensitive-data',
             array( $this, 'render_sensitive_data' )
-
         );
 
         add_submenu_page(
