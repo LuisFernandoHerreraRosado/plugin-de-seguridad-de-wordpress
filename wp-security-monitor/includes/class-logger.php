@@ -37,7 +37,7 @@ class WPSM_Logger {
     public function log( $type, $message, $severity = 'low', $metadata = '' ) {
         global $wpdb;
 
-        $user_id = get_current_user_id();
+        $user_id = function_exists( 'get_current_user_id' ) ? get_current_user_id() : 0;
         $ip = $this->get_ip();
 
         return $wpdb->insert(
