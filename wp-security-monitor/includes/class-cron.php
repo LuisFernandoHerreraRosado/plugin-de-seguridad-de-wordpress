@@ -14,6 +14,7 @@ class WPSM_Cron {
     public function init() {
         add_action( 'wpsm_scheduled_scan', array( $this, 'execute_scan' ) );
         add_action( 'wpsm_scheduled_sync', array( $this, 'execute_sync' ) );
+        add_action( 'wpsm_scheduled_backup', array( $this, 'execute_backup' ) );
     }
 
     public static function register_defaults() {
@@ -34,6 +35,13 @@ class WPSM_Cron {
     public function execute_sync() {
         $remote_sync = new WPSM_Remote_Sync( new WPSM_Logger() );
         $remote_sync->send_heartbeat();
+    }
+
+    public function execute_backup() {
+        $logger = new WPSM_Logger();
+        $settings = new WPSM_Settings();
+        $manager = new WPSM_Backup_Manager( $logger, $settings );
+        $manager->run_backup( 'full' );
     }
 
     public function update_schedule( $frequency ) {

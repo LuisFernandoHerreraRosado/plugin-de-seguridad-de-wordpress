@@ -36,6 +36,10 @@ function wpsm_activate() {
 
     require_once WPSM_PATH . 'includes/class-cron.php';
     WPSM_Cron::register_defaults();
+
+    if ( ! wp_next_scheduled( 'wpsm_scheduled_backup' ) ) {
+        wp_schedule_event( time(), 'daily', 'wpsm_scheduled_backup' );
+    }
 }
 
 /**
@@ -46,6 +50,7 @@ require_once WPSM_PATH . 'includes/class-site-identity.php';
 require_once WPSM_PATH . 'includes/class-alerts.php';
 require_once WPSM_PATH . 'includes/class-settings.php';
 require_once WPSM_PATH . 'includes/class-scanner.php';
+require_once WPSM_PATH . 'includes/class-backup-manager.php';
 require_once WPSM_PATH . 'includes/class-file-integrity.php';
 require_once WPSM_PATH . 'includes/class-login-monitor.php';
 require_once WPSM_PATH . 'includes/class-cron.php';

@@ -94,6 +94,31 @@ class WPSM_API {
             'callback' => array( $this, 'update_sensitive_settings' ),
             'permission_callback' => array( $this, 'check_permission' )
         ) );
+
+        // Endpoints de Backups
+        register_rest_route( $this->namespace, '/backups', array(
+            'methods'  => 'GET',
+            'callback' => array( $this, 'get_backups' ),
+            'permission_callback' => array( $this, 'check_permission' )
+        ) );
+
+        register_rest_route( $this->namespace, '/backups/run', array(
+            'methods'  => 'POST',
+            'callback' => array( $this, 'run_backup' ),
+            'permission_callback' => array( $this, 'check_permission' )
+        ) );
+
+        register_rest_route( $this->namespace, '/backups/config', array(
+            'methods'  => 'GET',
+            'callback' => array( $this, 'get_backup_config' ),
+            'permission_callback' => array( $this, 'check_permission' )
+        ) );
+
+        register_rest_route( $this->namespace, '/backups/config', array(
+            'methods'  => 'POST',
+            'callback' => array( $this, 'update_backup_config' ),
+            'permission_callback' => array( $this, 'check_permission' )
+        ) );
     }
 
     public function check_permission( $request ) {
@@ -250,6 +275,47 @@ class WPSM_API {
     public function get_db_status( $request ) {
         $manager = new WPSM_DB_Prefix_Manager( $this->logger );
         return new WP_REST_Response( $manager->get_prefix_status(), 200 );
+    }
+
+    public function get_backups( $request ) {
+        $settings = new WPSM_Settings();
+        $manager = new WPSM_Backup_Manager( $this->logger, $settings );
+        return new WP_REST_Response( $manager->get_history(), 200 );
+    }
+
+    public function run_backup( $request ) {
+        $type = $request->get_param( 'type' ) ?: 'full';
+        $settings = new WPSM_Settings();
+        $manager = new WPSM_Backup_Manager( $this->logger, $settings );
+        $result = $manager->run_backup( $type );
+
+        if ( $result ) {
+            return new WP_REST_Response( array( 'success' => true ), 200 );
+        }
+        return new WP_Error( 'backup_failed', 'Backup execution failed', array( 'status' => 500 ) );
+    }
+
+    public function get_backup_config( $request ) {
+        $settings = new WPSM_Settings();
+        return new WP_REST_Response( array(
+            'backup_frequency'  => $settings->get_setting( 'backup_frequency', 'daily' ),
+            'preventive_backup' => $settings->get_setting( 'preventive_backup', 'yes' ),
+            'storage_provider'  => $settings->get_setting( 'storage_provider', 'local' )
+        ), 200 );
+    }
+
+    public function update_backup_config( $request ) {
+        $params = $request->get_params();
+        $settings = new WPSM_Settings();
+        $keys = array( 'backup_frequency', 'preventive_backup', 'storage_provider' );
+
+        foreach ( $keys as $key ) {
+            if ( isset( $params[$key] ) ) {
+                $settings->update_setting( $key, sanitize_text_field( $params[$key] ) );
+            }
+        }
+
+        return new WP_REST_Response( array( 'success' => true ), 200 );
     }
 
 }
