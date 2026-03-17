@@ -77,6 +77,7 @@ require_once WPSM_PATH . 'includes/class-vulnerability-monitor.php';
 // Core Module Classes
 require_once WPSM_PATH . 'includes/class-core-hardening.php';
 require_once WPSM_PATH . 'includes/class-core-updates.php';
+require_once WPSM_PATH . 'includes/class-ssl-manager.php';
 require_once WPSM_PATH . 'includes/class-db-prefix-manager.php';
 require_once WPSM_PATH . 'includes/class-config-editor.php';
 
@@ -117,6 +118,7 @@ function run_wpsm() {
     // Iniciar módulos de core
     $core_hard    = new WPSM_Core_Hardening( $logger, $settings );
     $core_updates = new WPSM_Core_Updates( $logger, $settings );
+    $ssl_mgr      = new WPSM_SSL_Manager( $logger, $settings );
 
     // Registrar proveedores 2FA
     $two_fa_mgr->register_provider( 'totp', new WPSM_2FA_TOTP() );
@@ -148,6 +150,7 @@ function run_wpsm() {
 
     $core_hard->init();
     $core_updates->init();
+    $ssl_mgr->init();
 
     // Captura de errores críticos
     set_error_handler( function( $errno, $errstr, $errfile, $errline ) use ( $logger ) {
