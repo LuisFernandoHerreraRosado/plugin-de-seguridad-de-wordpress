@@ -26,6 +26,7 @@ class WPSM_Admin {
         add_action( 'admin_post_wpsm_change_db_prefix', array( $this, 'change_db_prefix' ) );
 
         add_action( 'admin_post_wpsm_save_sensitive_settings', array( $this, 'save_sensitive_settings' ) );
+        add_action( 'admin_post_wpsm_save_spam_settings', array( $this, 'save_spam_settings' ) );
 
         add_action( 'admin_post_wpsm_manual_scan', array( $this, 'run_manual_scan' ) );
         add_action( 'admin_post_wpsm_purge_logs', array( $this, 'purge_logs' ) );
@@ -41,6 +42,15 @@ class WPSM_Admin {
             array( $this, 'render_dashboard' ),
             'dashicons-shield',
             80
+        );
+
+        add_submenu_page(
+            'wp-security-monitor',
+            __( 'Anti-Spam & Phishing', 'wp-security-monitor' ),
+            __( 'Anti-Spam', 'wp-security-monitor' ),
+            'manage_options',
+            'wpsm-spam',
+            array( $this, 'render_spam_page' )
         );
 
         add_submenu_page(
@@ -130,6 +140,10 @@ class WPSM_Admin {
 
     public function render_sensitive_data() {
         include WPSM_PATH . 'admin/sensitive-data-page.php';
+    }
+
+    public function render_spam_page() {
+        include WPSM_PATH . 'admin/spam-settings-page.php';
     }
 
     public function render_logs() {
@@ -330,6 +344,31 @@ class WPSM_Admin {
         }
 
         wp_redirect( admin_url( 'admin.php?page=wpsm-sensitive-data&settings-updated=true' ) );
+        exit;
+    }
+
+    public function save_spam_settings() {
+        check_admin_referer( 'wpsm_spam_settings_action' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_die( 'No autorizado' );
+
+        $keys = array(
+            'disable_comments',
+            'spam_protection_enable',
+            'spam_min_time',
+            'spam_max_links'
+        );
+
+        foreach ( $keys as $key ) {
+            if ( isset( $_POST[$key] ) ) {
+                $this->settings->update_setting( $key, sanitize_text_field( $_POST[$key] ) );
+            } else {
+                if ( in_array( $key, array( 'disable_comments', 'spam_protection_enable' ) ) ) {
+                    $this->settings->update_setting( $key, 'no' );
+                }
+            }
+        }
+
+        wp_redirect( admin_url( 'admin.php?page=wpsm-spam&settings-updated=true' ) );
         exit;
     }
 }
