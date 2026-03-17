@@ -53,12 +53,26 @@ class WPSM_Scanner {
             $results['passed'][] = __( 'Todos los plugins están actualizados.', 'wp-security-monitor' );
         }
 
-        // 3. SSL
-        if ( is_ssl() ) {
+        // 3. SSL & Mixed Content
+        $ssl_manager = new WPSM_SSL_Manager( $this->logger, new WPSM_Settings() );
+        $ssl_status  = $ssl_manager->get_ssl_status();
+
+        if ( $ssl_status['enabled'] ) {
             $results['passed'][] = __( 'El sitio utiliza una conexión segura (SSL).', 'wp-security-monitor' );
+
+            if ( ! empty( $ssl_status['warnings'] ) ) {
+                foreach ( $ssl_status['warnings'] as $warning ) {
+                    $results['warning'][] = $warning;
+                }
+                $results['recommendations'][] = __( 'Corrige la configuración de las URLs del sitio para usar HTTPS en Ajustes > Generales.', 'wp-security-monitor' );
+            }
+
+            // Detección proactiva de contenido mixto en la base de datos (muestreo)
+            $this->check_database_mixed_content( $results );
+
         } else {
             $results['warning'][] = __( 'El sitio no utiliza SSL.', 'wp-security-monitor' );
-            $results['recommendations'][] = __( 'Instala un certificado SSL para cifrar el tráfico de tus usuarios.', 'wp-security-monitor' );
+            $results['recommendations'][] = __( 'Instala un certificado SSL y activa "Forzar Redirección HTTPS" en el módulo SSL.', 'wp-security-monitor' );
         }
 
         // 4. Usuario 'admin'
@@ -128,6 +142,19 @@ class WPSM_Scanner {
             if ( $fileinfo->isDir() ) {
                 $this->recursive_scan( $fileinfo->getPathname(), $depth + 1, $max_depth, $found_php, $results );
             }
+        }
+    }
+
+    private function check_database_mixed_content( &$results ) {
+        global $wpdb;
+        $site_url = str_replace( array( 'http://', 'https://' ), '', get_site_url() );
+        $pattern = '%' . $wpdb->esc_like( 'http://' . $site_url ) . '%';
+
+        $found_in_posts = $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM $wpdb->posts WHERE post_content LIKE %s", $pattern ) );
+
+        if ( $found_in_posts > 0 ) {
+            $results['warning'][] = sprintf( __( 'Se detectaron %d entradas con contenido mixto (enlaces HTTP internos) en la base de datos.', 'wp-security-monitor' ), $found_in_posts );
+            $results['recommendations'][] = __( 'Usa la opción "Corregir Contenido Mixto" o realiza una búsqueda y reemplazo en la base de datos.', 'wp-security-monitor' );
         }
     }
 
