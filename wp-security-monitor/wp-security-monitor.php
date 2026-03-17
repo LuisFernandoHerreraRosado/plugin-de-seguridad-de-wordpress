@@ -58,6 +58,7 @@ require_once WPSM_PATH . 'includes/class-api.php';
 require_once WPSM_PATH . 'includes/class-remote-sync.php';
 require_once WPSM_PATH . 'includes/class-sensitive-data.php';
 require_once WPSM_PATH . 'includes/class-anti-spam-phishing.php';
+require_once WPSM_PATH . 'includes/class-remediation.php';
 require_once WPSM_PATH . 'includes/class-admin.php';
 
 // Auth Module Classes

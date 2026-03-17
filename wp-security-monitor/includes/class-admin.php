@@ -31,6 +31,7 @@ class WPSM_Admin {
         add_action( 'admin_post_wpsm_save_anti_spam_settings', array( $this, 'save_anti_spam_settings' ) );
 
         add_action( 'admin_post_wpsm_manual_scan', array( $this, 'run_manual_scan' ) );
+        add_action( 'admin_post_wpsm_fix_issues', array( $this, 'fix_issues' ) );
         add_action( 'admin_post_wpsm_purge_logs', array( $this, 'purge_logs' ) );
         add_action( 'admin_post_wpsm_generate_api_key', array( $this, 'generate_api_key' ) );
     }
@@ -298,6 +299,21 @@ class WPSM_Admin {
         $this->scanner->run_scan();
 
         wp_redirect( admin_url( 'admin.php?page=wp-security-monitor&scan-complete=true' ) );
+        exit;
+    }
+
+    public function fix_issues() {
+        check_admin_referer( 'wpsm_fix_issues' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_die( __( 'No autorizado', 'wp-security-monitor' ) );
+
+        $fixed_count = 0;
+        $issue_ids = isset( $_POST['fix_issue'] ) ? (array) $_POST['fix_issue'] : array();
+        if ( ! empty( $issue_ids ) ) {
+            $remediation = new WPSM_Remediation( $this->logger, $this->scanner );
+            $fixed_count = $remediation->fix_issues( $issue_ids );
+        }
+
+        wp_redirect( admin_url( 'admin.php?page=wp-security-monitor&remediation-complete=true&fixed=' . (int) $fixed_count ) );
         exit;
     }
 

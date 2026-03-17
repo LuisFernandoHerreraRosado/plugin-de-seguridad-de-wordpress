@@ -27,7 +27,11 @@ class WPSM_Scanner {
         if ( ! empty( $file_changes ) ) {
             foreach ( $file_changes as $file ) {
                 $msg = sprintf( __( 'Cambio detectado en archivo sensible: %s', 'wp-security-monitor' ), basename( $file ) );
-                $results['critical'][] = $msg;
+                $results['critical'][] = array(
+                    'id'      => 'file_integrity_' . md5($file),
+                    'message' => $msg,
+                    'fixable' => false
+                );
                 $results['recommendations'][] = sprintf( __( 'Restaura el archivo %s desde una copia de seguridad confiable.', 'wp-security-monitor' ), basename( $file ) );
                 $this->logger->log( 'file_change', $msg, 'critical' );
             }
@@ -39,7 +43,11 @@ class WPSM_Scanner {
         $updates = get_site_transient( 'update_core' );
         if ( isset( $updates->updates ) && ! empty( $updates->updates ) && $updates->updates[0]->response === 'upgrade' ) {
             $msg = __( 'WordPress tiene una actualización disponible.', 'wp-security-monitor' );
-            $results['warning'][] = $msg;
+            $results['warning'][] = array(
+                'id'      => 'core_update',
+                'message' => $msg,
+                'fixable' => true
+            );
             $results['recommendations'][] = __( 'Actualiza WordPress a la última versión estable.', 'wp-security-monitor' );
         } else {
             $results['passed'][] = __( 'WordPress está actualizado.', 'wp-security-monitor' );
@@ -47,7 +55,12 @@ class WPSM_Scanner {
 
         $plugin_updates = get_site_transient( 'update_plugins' );
         if ( ! empty( $plugin_updates->response ) ) {
-            $results['warning'][] = __( 'Hay plugins desactualizados.', 'wp-security-monitor' );
+            $msg = __( 'Hay plugins desactualizados.', 'wp-security-monitor' );
+            $results['warning'][] = array(
+                'id'      => 'plugin_updates',
+                'message' => $msg,
+                'fixable' => true
+            );
             $results['recommendations'][] = __( 'Actualiza todos tus plugins para evitar vulnerabilidades conocidas.', 'wp-security-monitor' );
         } else {
             $results['passed'][] = __( 'Todos los plugins están actualizados.', 'wp-security-monitor' );
@@ -57,13 +70,23 @@ class WPSM_Scanner {
         if ( is_ssl() ) {
             $results['passed'][] = __( 'El sitio utiliza una conexión segura (SSL).', 'wp-security-monitor' );
         } else {
-            $results['warning'][] = __( 'El sitio no utiliza SSL.', 'wp-security-monitor' );
+            $msg = __( 'El sitio no utiliza SSL.', 'wp-security-monitor' );
+            $results['warning'][] = array(
+                'id'      => 'ssl_missing',
+                'message' => $msg,
+                'fixable' => false
+            );
             $results['recommendations'][] = __( 'Instala un certificado SSL para cifrar el tráfico de tus usuarios.', 'wp-security-monitor' );
         }
 
         // 4. Usuario 'admin'
         if ( username_exists( 'admin' ) ) {
-            $results['critical'][] = __( 'Se detectó el usuario predeterminado "admin".', 'wp-security-monitor' );
+            $msg = __( 'Se detectó el usuario predeterminado "admin".', 'wp-security-monitor' );
+            $results['critical'][] = array(
+                'id'      => 'admin_user_exists',
+                'message' => $msg,
+                'fixable' => false
+            );
             $results['recommendations'][] = __( 'Crea un nuevo administrador con un nombre de usuario diferente y elimina el usuario "admin".', 'wp-security-monitor' );
         } else {
             $results['passed'][] = __( 'No se utiliza el usuario "admin" por defecto.', 'wp-security-monitor' );
@@ -72,7 +95,12 @@ class WPSM_Scanner {
         // 5. Prefijo de base de datos
         global $wpdb;
         if ( $wpdb->prefix === 'wp_' ) {
-            $results['info'][] = __( 'La base de datos utiliza el prefijo predeterminado "wp_".', 'wp-security-monitor' );
+            $msg = __( 'La base de datos utiliza el prefijo predeterminado "wp_".', 'wp-security-monitor' );
+            $results['info'][] = array(
+                'id'      => 'default_db_prefix',
+                'message' => $msg,
+                'fixable' => false
+            );
             $results['recommendations'][] = __( 'Cambia el prefijo de las tablas de la base de datos para dificultar ataques de inyección SQL.', 'wp-security-monitor' );
         } else {
             $results['passed'][] = __( 'El prefijo de la base de datos es personalizado.', 'wp-security-monitor' );
@@ -80,7 +108,12 @@ class WPSM_Scanner {
 
         // 6. Debug mode
         if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-            $results['info'][] = __( 'El modo WP_DEBUG está activado.', 'wp-security-monitor' );
+            $msg = __( 'El modo WP_DEBUG está activado.', 'wp-security-monitor' );
+            $results['info'][] = array(
+                'id'      => 'debug_mode_enabled',
+                'message' => $msg,
+                'fixable' => true
+            );
             $results['recommendations'][] = __( 'Desactiva WP_DEBUG en producción para no exponer rutas de archivos o errores internos.', 'wp-security-monitor' );
         } else {
             $results['passed'][] = __( 'El modo de depuración (WP_DEBUG) está desactivado.', 'wp-security-monitor' );
@@ -122,7 +155,7 @@ class WPSM_Scanner {
         foreach ( $it as $fileinfo ) {
             if ( $fileinfo->isDot() ) continue;
             if ( $fileinfo->isFile() && $fileinfo->getExtension() === 'php' ) {
-                $this->report_suspicious_php( $fileinfo->getFilename(), $results );
+                $this->report_suspicious_php( $fileinfo->getPathname(), $results );
                 $found_php = true;
             }
             if ( $fileinfo->isDir() ) {
@@ -131,9 +164,15 @@ class WPSM_Scanner {
         }
     }
 
-    private function report_suspicious_php( $filename, &$results ) {
+    private function report_suspicious_php( $path, &$results ) {
+        $filename = basename( $path );
         $msg = sprintf( __( 'Archivo PHP sospechoso en uploads: %s', 'wp-security-monitor' ), $filename );
-        $results['critical'][] = $msg;
+        $results['critical'][] = array(
+            'id'      => 'suspicious_file_' . md5($path),
+            'message' => $msg,
+            'fixable' => true,
+            'data'    => array( 'path' => $path )
+        );
         $this->logger->log( 'suspicious_file', $msg, 'critical' );
     }
 

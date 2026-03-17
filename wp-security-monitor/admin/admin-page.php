@@ -6,6 +6,10 @@
         <div class="updated"><p><?php _e( 'Escaneo completado con éxito.', 'wp-security-monitor' ); ?></p></div>
     <?php endif; ?>
 
+    <?php if ( isset( $_GET['remediation-complete'] ) ) : ?>
+        <div class="updated"><p><?php printf( __( 'Corrección completada. %d problemas resueltos.', 'wp-security-monitor' ), (int) $_GET['fixed'] ); ?></p></div>
+    <?php endif; ?>
+
     <div class="wpsm-dashboard-grid">
         <div class="wpsm-card wpsm-score-card">
             <?php
@@ -67,29 +71,68 @@
 
     <div class="wpsm-card wpsm-alerts-details">
         <h3><span class="dashicons dashicons-warning"></span> <?php _e( 'Detalles de Problemas Detectados', 'wp-security-monitor' ); ?></h3>
-        <?php if ( empty( $results['critical'] ) && empty( $results['warning'] ) && empty( $results['info'] ) ) : ?>
-            <p><?php _e( 'No se han detectado problemas de seguridad.', 'wp-security-monitor' ); ?></p>
-        <?php else : ?>
-            <div class="wpsm-alerts-list">
-                <?php if ( ! empty( $results['critical'] ) ) : ?>
-                    <div class="alert-group critical">
-                        <h4><?php _e( 'Problemas Críticos', 'wp-security-monitor' ); ?></h4>
-                        <?php foreach ( $results['critical'] as $alert ) : ?>
-                            <div class="alert-item"><?php echo esc_html( $alert ); ?></div>
-                        <?php endforeach; ?>
-                    </div>
-                <?php endif; ?>
 
-                <?php if ( ! empty( $results['warning'] ) ) : ?>
-                    <div class="alert-group warning">
-                        <h4><?php _e( 'Advertencias', 'wp-security-monitor' ); ?></h4>
-                        <?php foreach ( $results['warning'] as $alert ) : ?>
-                            <div class="alert-item"><?php echo esc_html( $alert ); ?></div>
-                        <?php endforeach; ?>
-                    </div>
-                <?php endif; ?>
-            </div>
-        <?php endif; ?>
+        <form action="<?php echo admin_url( 'admin-post.php' ); ?>" method="post">
+            <?php wp_nonce_field( 'wpsm_fix_issues' ); ?>
+            <input type="hidden" name="action" value="wpsm_fix_issues">
+
+            <?php
+            $vulnerabilities = get_option( 'wpsm_vulnerability_findings', array() );
+            $has_issues = ! empty( $results['critical'] ) || ! empty( $results['warning'] ) || ! empty( $results['info'] ) || ! empty( $vulnerabilities );
+            ?>
+
+            <?php if ( ! $has_issues ) : ?>
+                <p><?php _e( 'No se han detectado problemas de seguridad.', 'wp-security-monitor' ); ?></p>
+            <?php else : ?>
+                <div class="wpsm-alerts-list">
+                    <?php
+                    $alert_types = array(
+                        'critical' => __( 'Problemas Críticos', 'wp-security-monitor' ),
+                        'warning'  => __( 'Advertencias', 'wp-security-monitor' ),
+                        'info'     => __( 'Información', 'wp-security-monitor' )
+                    );
+
+                    foreach ( $alert_types as $type => $label ) :
+                        if ( ! empty( $results[$type] ) ) : ?>
+                            <div class="alert-group <?php echo esc_attr( $type ); ?>">
+                                <h4><?php echo esc_html( $label ); ?></h4>
+                                <?php foreach ( $results[$type] as $alert ) : ?>
+                                    <div class="alert-item">
+                                        <?php if ( is_array( $alert ) ) : ?>
+                                            <?php if ( ! empty( $alert['fixable'] ) ) : ?>
+                                                <input type="checkbox" name="fix_issue[]" value="<?php echo esc_attr( $alert['id'] ); ?>">
+                                            <?php endif; ?>
+                                            <?php echo esc_html( $alert['message'] ); ?>
+                                        <?php else : ?>
+                                            <?php echo esc_html( $alert ); ?>
+                                        <?php endif; ?>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif;
+                    endforeach; ?>
+
+                    <?php if ( ! empty( $vulnerabilities ) ) : ?>
+                        <div class="alert-group vulnerabilities">
+                            <h4><?php _e( 'Vulnerabilidades en Extensiones', 'wp-security-monitor' ); ?></h4>
+                            <?php foreach ( $vulnerabilities as $vuln ) : ?>
+                                <div class="alert-item">
+                                    <?php if ( ! empty( $vuln['fixable'] ) ) : ?>
+                                        <input type="checkbox" name="fix_issue[]" value="<?php echo esc_attr( $vuln['id'] ); ?>">
+                                    <?php endif; ?>
+                                    <strong>[<?php echo esc_html( strtoupper( $vuln['severity'] ) ); ?>]</strong>
+                                    <?php echo esc_html( $vuln['title'] ); ?> (<?php echo esc_html( $vuln['slug'] ); ?>)
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+
+                <div class="wpsm-remediation-actions" style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px;">
+                    <button type="submit" class="button button-primary"><?php _e( 'Corregir Problemas Seleccionados', 'wp-security-monitor' ); ?></button>
+                </div>
+            <?php endif; ?>
+        </form>
     </div>
 </div>
 
