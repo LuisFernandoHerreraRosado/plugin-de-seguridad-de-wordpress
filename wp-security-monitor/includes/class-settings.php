@@ -41,7 +41,12 @@ class WPSM_Settings {
             'disable_file_edit'  => $this->get_setting( 'disable_file_edit', 'yes' ),
             'hide_db_errors'     => $this->get_setting( 'hide_db_errors', 'yes' ),
             'block_unfiltered_uploads' => $this->get_setting( 'block_unfiltered_uploads', 'yes' ),
-            'disable_debug'      => $this->get_setting( 'disable_debug', 'yes' )
+            'disable_debug'      => $this->get_setting( 'disable_debug', 'yes' ),
+            'spam_protection_enable' => $this->get_setting( 'spam_protection_enable', 'no' ),
+            'disable_comments'   => $this->get_setting( 'disable_comments', 'no' ),
+            'antispam_honeypot'  => $this->get_setting( 'antispam_honeypot', 'yes' ),
+            'antispam_time_check' => $this->get_setting( 'antispam_time_check', 'yes' ),
+            'phishing_protection_enable' => $this->get_setting( 'phishing_protection_enable', 'no' )
         );
     }
 }
