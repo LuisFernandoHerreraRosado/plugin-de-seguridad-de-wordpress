@@ -52,6 +52,7 @@ require_once WPSM_PATH . 'includes/class-cron.php';
 require_once WPSM_PATH . 'includes/class-api.php';
 require_once WPSM_PATH . 'includes/class-remote-sync.php';
 require_once WPSM_PATH . 'includes/class-sensitive-data.php';
+require_once WPSM_PATH . 'includes/class-anti-spam-phishing.php';
 require_once WPSM_PATH . 'includes/class-admin.php';
 
 // Auth Module Classes
@@ -97,6 +98,7 @@ function run_wpsm() {
     $api          = new WPSM_API( $logger, $scanner, $integrity );
     $remote_sync  = new WPSM_Remote_Sync( $logger );
     $sensitive    = new WPSM_Sensitive_Data( $logger );
+    $antispam     = new WPSM_Anti_Spam_Phishing( $logger, $settings, $alerts );
     $admin        = new WPSM_Admin( $scanner, $logger, $settings );
 
     // Iniciar módulos de autenticación y seguridad
@@ -130,6 +132,7 @@ function run_wpsm() {
     $api->init();
     $remote_sync->init();
     $sensitive->init();
+    $antispam->init();
     $admin->init();
 
     // Iniciar nuevos módulos

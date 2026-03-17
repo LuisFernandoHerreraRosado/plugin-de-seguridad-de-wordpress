@@ -26,6 +26,7 @@ class WPSM_Admin {
         add_action( 'admin_post_wpsm_change_db_prefix', array( $this, 'change_db_prefix' ) );
 
         add_action( 'admin_post_wpsm_save_sensitive_settings', array( $this, 'save_sensitive_settings' ) );
+        add_action( 'admin_post_wpsm_save_anti_spam_settings', array( $this, 'save_anti_spam_settings' ) );
 
         add_action( 'admin_post_wpsm_manual_scan', array( $this, 'run_manual_scan' ) );
         add_action( 'admin_post_wpsm_purge_logs', array( $this, 'purge_logs' ) );
@@ -68,6 +69,15 @@ class WPSM_Admin {
             'manage_options',
             'wpsm-auth',
             array( $this, 'render_auth_page' )
+        );
+
+        add_submenu_page(
+            'wp-security-monitor',
+            __( 'Anti-Spam & Phishing', 'wp-security-monitor' ),
+            __( 'Anti-Spam', 'wp-security-monitor' ),
+            'manage_options',
+            'wpsm-antispam',
+            array( $this, 'render_anti_spam_page' )
         );
 
         add_submenu_page(
@@ -142,6 +152,10 @@ class WPSM_Admin {
 
     public function render_auth_page() {
         include WPSM_PATH . 'admin/auth-settings-page.php';
+    }
+
+    public function render_anti_spam_page() {
+        include WPSM_PATH . 'admin/anti-spam-page.php';
     }
 
     public function render_extensions_page() {
@@ -289,6 +303,30 @@ class WPSM_Admin {
         update_option( 'wpsm_api_key', $new_key );
 
         wp_redirect( admin_url( 'admin.php?page=wpsm-api&key-generated=true' ) );
+        exit;
+    }
+
+    public function save_anti_spam_settings() {
+        check_admin_referer( 'wpsm_anti_spam_settings_action' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_die( 'No autorizado' );
+
+        $keys = array(
+            'spam_protection_enable',
+            'disable_comments',
+            'antispam_honeypot',
+            'antispam_time_check',
+            'phishing_protection_enable'
+        );
+
+        foreach ( $keys as $key ) {
+            if ( isset( $_POST[$key] ) ) {
+                $this->settings->update_setting( $key, sanitize_text_field( $_POST[$key] ) );
+            } else {
+                $this->settings->update_setting( $key, 'no' );
+            }
+        }
+
+        wp_redirect( admin_url( 'admin.php?page=wpsm-antispam&settings-updated=true' ) );
         exit;
     }
 
