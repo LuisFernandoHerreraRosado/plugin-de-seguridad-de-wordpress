@@ -26,12 +26,9 @@ class WPSM_Admin {
         add_action( 'admin_post_wpsm_change_db_prefix', array( $this, 'change_db_prefix' ) );
 
         add_action( 'admin_post_wpsm_save_sensitive_settings', array( $this, 'save_sensitive_settings' ) );
-<<<<<<< HEAD
         add_action( 'admin_post_wpsm_save_backup_settings', array( $this, 'save_backup_settings' ) );
         add_action( 'admin_post_wpsm_run_backup', array( $this, 'run_manual_backup' ) );
-=======
         add_action( 'admin_post_wpsm_save_anti_spam_settings', array( $this, 'save_anti_spam_settings' ) );
->>>>>>> 6b1d840f7dfa585df3970bc1d0461750169b7fcc
 
         add_action( 'admin_post_wpsm_manual_scan', array( $this, 'run_manual_scan' ) );
         add_action( 'admin_post_wpsm_purge_logs', array( $this, 'purge_logs' ) );
@@ -325,7 +322,6 @@ class WPSM_Admin {
         exit;
     }
 
-<<<<<<< HEAD
     public function run_manual_backup() {
         check_admin_referer( 'wpsm_run_backup' );
         if ( ! current_user_can( 'manage_options' ) ) wp_die( 'No autorizado' );
@@ -347,25 +343,11 @@ class WPSM_Admin {
         if ( ! current_user_can( 'manage_options' ) ) wp_die( 'No autorizado' );
 
         $keys = array( 'backup_frequency', 'preventive_backup', 'storage_provider' );
-=======
-    public function save_anti_spam_settings() {
-        check_admin_referer( 'wpsm_anti_spam_settings_action' );
-        if ( ! current_user_can( 'manage_options' ) ) wp_die( 'No autorizado' );
-
-        $keys = array(
-            'spam_protection_enable',
-            'disable_comments',
-            'antispam_honeypot',
-            'antispam_time_check',
-            'phishing_protection_enable'
-        );
->>>>>>> 6b1d840f7dfa585df3970bc1d0461750169b7fcc
 
         foreach ( $keys as $key ) {
             if ( isset( $_POST[$key] ) ) {
                 $this->settings->update_setting( $key, sanitize_text_field( $_POST[$key] ) );
             } else {
-<<<<<<< HEAD
                 if ( $key === 'preventive_backup' ) {
                     $this->settings->update_setting( $key, 'no' );
                 }
@@ -380,13 +362,30 @@ class WPSM_Admin {
         }
 
         wp_redirect( admin_url( 'admin.php?page=wpsm-backups&settings-updated=true' ) );
-=======
+        exit;
+    }
+
+    public function save_anti_spam_settings() {
+        check_admin_referer( 'wpsm_anti_spam_settings_action' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_die( 'No autorizado' );
+
+        $keys = array(
+            'spam_protection_enable',
+            'disable_comments',
+            'antispam_honeypot',
+            'antispam_time_check',
+            'phishing_protection_enable'
+        );
+
+        foreach ( $keys as $key ) {
+            if ( isset( $_POST[$key] ) ) {
+                $this->settings->update_setting( $key, sanitize_text_field( $_POST[$key] ) );
+            } else {
                 $this->settings->update_setting( $key, 'no' );
             }
         }
 
         wp_redirect( admin_url( 'admin.php?page=wpsm-antispam&settings-updated=true' ) );
->>>>>>> 6b1d840f7dfa585df3970bc1d0461750169b7fcc
         exit;
     }
 
