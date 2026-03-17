@@ -26,6 +26,7 @@ class WPSM_Admin {
         add_action( 'admin_post_wpsm_change_db_prefix', array( $this, 'change_db_prefix' ) );
 
         add_action( 'admin_post_wpsm_save_sensitive_settings', array( $this, 'save_sensitive_settings' ) );
+        add_action( 'admin_post_wpsm_save_ssl_settings', array( $this, 'save_ssl_settings' ) );
 
         add_action( 'admin_post_wpsm_manual_scan', array( $this, 'run_manual_scan' ) );
         add_action( 'admin_post_wpsm_purge_logs', array( $this, 'purge_logs' ) );
@@ -41,6 +42,15 @@ class WPSM_Admin {
             array( $this, 'render_dashboard' ),
             'dashicons-shield',
             80
+        );
+
+        add_submenu_page(
+            'wp-security-monitor',
+            __( 'Seguridad SSL / HTTPS', 'wp-security-monitor' ),
+            'SSL / HTTPS',
+            'manage_options',
+            'wpsm-ssl',
+            array( $this, 'render_ssl_page' )
         );
 
         add_submenu_page(
@@ -154,6 +164,10 @@ class WPSM_Admin {
 
     public function render_api_page() {
         include WPSM_PATH . 'admin/api-page.php';
+    }
+
+    public function render_ssl_page() {
+        include WPSM_PATH . 'admin/ssl-settings-page.php';
     }
 
     public function save_settings() {
@@ -289,6 +303,24 @@ class WPSM_Admin {
         update_option( 'wpsm_api_key', $new_key );
 
         wp_redirect( admin_url( 'admin.php?page=wpsm-api&key-generated=true' ) );
+        exit;
+    }
+
+    public function save_ssl_settings() {
+        check_admin_referer( 'wpsm_ssl_settings_action' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_die( 'No autorizado' );
+
+        $keys = array( 'force_https', 'fix_mixed_content' );
+
+        foreach ( $keys as $key ) {
+            if ( isset( $_POST[$key] ) ) {
+                $this->settings->update_setting( $key, sanitize_text_field( $_POST[$key] ) );
+            } else {
+                $this->settings->update_setting( $key, 'no' );
+            }
+        }
+
+        wp_redirect( admin_url( 'admin.php?page=wpsm-ssl&settings-updated=true' ) );
         exit;
     }
 

@@ -94,6 +94,12 @@ class WPSM_API {
             'callback' => array( $this, 'update_sensitive_settings' ),
             'permission_callback' => array( $this, 'check_permission' )
         ) );
+
+        register_rest_route( $this->namespace, '/ssl/status', array(
+            'methods'  => 'GET',
+            'callback' => array( $this, 'get_ssl_status' ),
+            'permission_callback' => array( $this, 'check_permission' )
+        ) );
     }
 
     public function check_permission( $request ) {
@@ -250,6 +256,14 @@ class WPSM_API {
     public function get_db_status( $request ) {
         $manager = new WPSM_DB_Prefix_Manager( $this->logger );
         return new WP_REST_Response( $manager->get_prefix_status(), 200 );
+    }
+
+    /**
+     * Obtiene el estado del SSL
+     */
+    public function get_ssl_status( $request ) {
+        $manager = new WPSM_SSL_Manager( $this->logger, new WPSM_Settings() );
+        return new WP_REST_Response( $manager->get_ssl_status(), 200 );
     }
 
 }

@@ -41,7 +41,9 @@ class WPSM_Settings {
             'disable_file_edit'  => $this->get_setting( 'disable_file_edit', 'yes' ),
             'hide_db_errors'     => $this->get_setting( 'hide_db_errors', 'yes' ),
             'block_unfiltered_uploads' => $this->get_setting( 'block_unfiltered_uploads', 'yes' ),
-            'disable_debug'      => $this->get_setting( 'disable_debug', 'yes' )
+            'disable_debug'      => $this->get_setting( 'disable_debug', 'yes' ),
+            'force_https'        => $this->get_setting( 'force_https', 'no' ),
+            'fix_mixed_content'  => $this->get_setting( 'fix_mixed_content', 'no' )
         );
     }
 }
